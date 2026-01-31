@@ -1,0 +1,294 @@
+/**
+ * ContentView styles
+ *
+ * Styles for the content view area including:
+ * - Base content view container
+ * - Loading and error states
+ * - Text viewer
+ * - Placeholder for no active tab
+ */
+
+/* Base content view container */
+.content-view {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+}
+
+/* Loading state */
+.content-view-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #808080;
+}
+
+.content-view-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #3c3c3c;
+  border-top-color: #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.content-view-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #f14c4c;
+}
+
+.content-view-error-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #5a1d1d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.content-view-error-message {
+  font-size: 13px;
+  text-align: center;
+  max-width: 400px;
+}
+
+/* Text viewer */
+.text-viewer {
+  padding: 0;
+}
+
+.text-viewer-content {
+  margin: 0;
+  padding: 16px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  tab-size: 4;
+}
+
+/* Placeholder when no tab is active */
+.content-view-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #808080;
+}
+
+.content-view-placeholder-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.content-view-placeholder-text {
+  font-size: 14px;
+}
+
+.content-view-placeholder-hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Ink editor placeholder */
+.ink-editor-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #808080;
+}
+
+.ink-editor-placeholder-icon {
+  font-size: 48px;
+}
+
+.ink-editor-placeholder-text {
+  font-size: 14px;
+}
+
+/* Image viewer */
+.image-viewer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.image-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+}
+
+.image-viewer-btn {
+  padding: 4px 12px;
+  background-color: #3c3c3c;
+  border: none;
+  border-radius: 4px;
+  color: #d4d4d4;
+  cursor: pointer;
+  font-size: 13px;
+  min-width: 32px;
+}
+
+.image-viewer-btn:hover:not(:disabled) {
+  background-color: #4c4c4c;
+}
+
+.image-viewer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-viewer-zoom-level {
+  min-width: 50px;
+  text-align: center;
+  font-size: 12px;
+  color: #808080;
+}
+
+.image-viewer-filename {
+  margin-left: auto;
+  font-size: 12px;
+  color: #808080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-viewer-container {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+}
+
+.image-viewer-loading {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #808080;
+}
+
+.image-viewer-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.1s ease;
+  transform-origin: center center;
+}
+
+/* Video viewer */
+.video-viewer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.video-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+}
+
+.video-viewer-filename {
+  font-size: 12px;
+  color: #808080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-viewer-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: #000;
+}
+
+.video-viewer-video {
+  max-width: 100%;
+  max-height: 100%;
+  outline: none;
+}
+
+/* Audio viewer (shares some video styles) */
+.audio-viewer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.audio-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #252526;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+}
+
+.audio-viewer-filename {
+  font-size: 12px;
+  color: #808080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audio-viewer-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+}
+
+.audio-viewer-icon {
+  font-size: 64px;
+  opacity: 0.5;
+}
+
+.audio-viewer-audio {
+  width: 100%;
+  max-width: 500px;
+  outline: none;
+}

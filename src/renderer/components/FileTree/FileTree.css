@@ -1,0 +1,260 @@
+/**
+ * FileTree component styles
+ *
+ * VS Code-inspired dark theme styling for the file tree.
+ * Uses BEM naming convention for CSS classes.
+ */
+
+/* Container styles */
+.file-tree {
+  width: 100%;
+  height: 100%;
+  background-color: #252526;
+  color: #cccccc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+  user-select: none;
+}
+
+/* Empty state styles */
+.file-tree--empty,
+.file-tree--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  padding: 16px;
+}
+
+.file-tree__empty-message {
+  color: #808080;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+
+/* Loading state styles */
+.file-tree__loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-tree__loading-icon {
+  font-size: 24px;
+  animation: file-tree-spin 1s linear infinite;
+}
+
+.file-tree__loading-text {
+  color: #808080;
+  font-size: 12px;
+}
+
+@keyframes file-tree-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Node styles (used by FileTreeNode component) */
+.file-tree-node {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px 2px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
+}
+
+.file-tree-node:hover {
+  background-color: #2a2d2e;
+}
+
+.file-tree-node:focus {
+  outline: none;
+  background-color: #2a2d2e;
+}
+
+.file-tree-node--selected {
+  background-color: #094771 !important;
+}
+
+.file-tree-node--focused {
+  outline: 1px solid #007acc;
+  outline-offset: -1px;
+}
+
+/* Arrow indicator for folders */
+.file-tree-node__arrow {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #cccccc;
+  transition: transform 0.1s ease;
+}
+
+/* File type icon */
+.file-tree-node__icon {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+/* File/folder name */
+.file-tree-node__name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hover tooltip for long names */
+.file-tree-node__name:hover {
+  /* Tooltip is handled by title attribute */
+}
+
+/* Scrollbar styling for the tree */
+.file-tree ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.file-tree ::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.file-tree ::-webkit-scrollbar-thumb {
+  background-color: #424242;
+  border-radius: 5px;
+  border: 2px solid #1e1e1e;
+}
+
+.file-tree ::-webkit-scrollbar-thumb:hover {
+  background-color: #4f4f4f;
+}
+
+/* Ensure react-arborist tree fills container */
+.file-tree [role='tree'] {
+  outline: none;
+}
+
+/* Context menu overlay */
+.file-tree-context-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+/* Context menu */
+.file-tree-context-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 160px;
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+}
+
+.file-tree-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: #cccccc;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.file-tree-context-menu__item:hover {
+  background-color: #094771;
+}
+
+.file-tree-context-menu__item:focus {
+  outline: none;
+  background-color: #094771;
+}
+
+.file-tree-context-menu__item--danger {
+  color: #f48771;
+}
+
+.file-tree-context-menu__item--danger:hover {
+  background-color: #5a1d1d;
+}
+
+.file-tree-context-menu__divider {
+  height: 1px;
+  background-color: #454545;
+  margin: 4px 0;
+}
+
+/* Input dialog */
+.file-tree-input-dialog {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #454545;
+}
+
+.file-tree-input-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-tree-input-dialog__label {
+  font-size: 11px;
+  color: #808080;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-tree-input-dialog__input {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  border-radius: 2px;
+  color: #cccccc;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.file-tree-input-dialog__input:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.file-tree-input-dialog__input::placeholder {
+  color: #808080;
+}

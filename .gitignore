@@ -1,0 +1,70 @@
+# Claude data directory
+.claude
+
+# Auto Claude data directory
+.auto-claude/
+
+# Auto Claude generated files
+.auto-claude-security.json
+.auto-claude-status
+.claude_settings.json
+.worktrees/
+.security-key
+logs/security/
+
+# Dependencies
+node_modules/
+
+# Electron Forge output
+out/
+.vite/
+
+# Build output
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test results and coverage
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+*~
+/test-results
+/playwright-report
+
+# Electron
+*.asar

@@ -1,0 +1,211 @@
+/**
+ * MessageComposer Component Styles
+ *
+ * WhatsApp-style message input with plus menu.
+ */
+
+.message-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: #252526;
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Input Area */
+.message-composer__input-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* Plus Button */
+.message-composer__plus-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #007acc;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.message-composer__plus-btn:hover {
+  background-color: #0098ff;
+}
+
+.message-composer__plus-btn--active {
+  background-color: #005a9e;
+  transform: rotate(45deg);
+}
+
+.message-composer__plus-icon {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Input Wrapper */
+.message-composer__input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.message-composer__input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 20px;
+  color: #d4d4d4;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  overflow: hidden;
+  min-height: 40px;
+  max-height: 150px;
+  line-height: 1.4;
+}
+
+.message-composer__input:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.message-composer__input::placeholder {
+  color: #6c6c6c;
+}
+
+/* Send Button */
+.message-composer__send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #2d2d2d;
+  border: 1px solid #3c3c3c;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.message-composer__send-btn:hover:not(:disabled) {
+  background-color: #007acc;
+  border-color: #007acc;
+}
+
+.message-composer__send-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.message-composer__send-icon {
+  color: #d4d4d4;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.message-composer__send-btn:hover:not(:disabled) .message-composer__send-icon {
+  color: #ffffff;
+}
+
+/* Hints */
+.message-composer__hints {
+  display: flex;
+  gap: 16px;
+  padding: 0 4px;
+}
+
+.message-composer__hint {
+  font-size: 11px;
+  color: #6c6c6c;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message-composer__hint kbd {
+  padding: 2px 5px;
+  background-color: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: inherit;
+  color: #a0a0a0;
+}
+
+/* Plus Menu */
+.message-composer__menu {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  right: 12px;
+  background-color: #2d2d2d;
+  border: 1px solid #454545;
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  margin-bottom: 8px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.message-composer__menu-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.message-composer__menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 8px;
+}
+
+.message-composer__menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.message-composer__menu-item:hover {
+  background-color: #094771;
+}
+
+.message-composer__menu-icon {
+  font-size: 24px;
+}
+
+.message-composer__menu-label {
+  font-size: 11px;
+  color: #d4d4d4;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Responsive: stack hints on small screens */
+@media (max-width: 400px) {
+  .message-composer__hints {
+    flex-wrap: wrap;
+  }
+}

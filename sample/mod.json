@@ -1,0 +1,8 @@
+{
+    "modId": "sample-mod",
+    "modName": "Sample Mod",
+    "version": "1.0.0",
+    "author": "Developer",
+    "description": "A sample mod for testing the editor",
+    "headerImage": "header.png"
+}

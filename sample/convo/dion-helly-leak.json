@@ -1,0 +1,10 @@
+{
+    "injectionId": "dion-helly-leak",
+    "conversationsToReceive": [
+        {
+            "contactId": "helly",
+            "senderId": "dion",
+            "inkFilePath": "dion-helly-leak.ink"
+        }
+    ]
+}

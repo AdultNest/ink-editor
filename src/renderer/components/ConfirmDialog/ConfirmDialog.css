@@ -1,0 +1,89 @@
+/**
+ * ConfirmDialog styles
+ *
+ * VS Code-inspired dark theme styling for confirmation dialogs.
+ */
+
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.confirm-dialog {
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 20px 24px;
+  min-width: 320px;
+  max-width: 480px;
+}
+
+.confirm-dialog__title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #cccccc;
+}
+
+.confirm-dialog__message {
+  margin: 0 0 20px 0;
+  font-size: 13px;
+  color: #9d9d9d;
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-dialog__button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.confirm-dialog__button:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 1px;
+}
+
+.confirm-dialog__button--cancel {
+  background-color: #3c3c3c;
+  color: #cccccc;
+}
+
+.confirm-dialog__button--cancel:hover {
+  background-color: #505050;
+}
+
+.confirm-dialog__button--confirm {
+  background-color: #0e639c;
+  color: #ffffff;
+}
+
+.confirm-dialog__button--confirm:hover {
+  background-color: #1177bb;
+}
+
+.confirm-dialog__button--destructive {
+  background-color: #c53030;
+}
+
+.confirm-dialog__button--destructive:hover {
+  background-color: #e53e3e;
+}

@@ -1,0 +1,747 @@
+/**
+ * Preview Components Styles
+ *
+ * Phone-style chat interface for knot content preview.
+ * Designed to match modern messaging app aesthetics.
+ */
+
+/* ============================================================================
+   Preview Container
+   ============================================================================ */
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: 100%;
+}
+
+.preview-container--phone {
+  max-width: 400px;
+  margin: 0 auto;
+  border: 2px solid #333;
+  border-radius: 24px;
+  padding: 20px 12px;
+}
+
+/* ============================================================================
+   Message Bubbles
+   ============================================================================ */
+
+.message-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.message-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* NPC messages - left aligned, dark background */
+.message-bubble--npc {
+  align-self: flex-start;
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+  border-bottom-left-radius: 4px;
+}
+
+/* Player messages - right aligned, blue background */
+.message-bubble--player {
+  align-self: flex-end;
+  background-color: #007acc;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.message-bubble__timestamp {
+  font-size: 10px;
+  color: #888;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.message-bubble--empty {
+  border: 1px dashed #555;
+  opacity: 0.7;
+}
+
+.message-bubble__placeholder {
+  color: #888;
+  font-style: italic;
+}
+
+/* ============================================================================
+   Image Messages
+   ============================================================================ */
+
+.image-message {
+  max-width: 70%;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.image-message:hover {
+  transform: scale(1.02);
+}
+
+.image-message--npc {
+  align-self: flex-start;
+}
+
+.image-message--player {
+  align-self: flex-end;
+}
+
+.image-message__wrapper {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #2d2d2d;
+}
+
+.image-message__img {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.image-message__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #2d2d2d;
+  border-radius: 12px;
+  min-width: 150px;
+  min-height: 100px;
+}
+
+.image-message__placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.image-message__placeholder-text {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+}
+
+.image-message--invalid .image-message__wrapper {
+  border: 2px dashed #f44336;
+}
+
+.image-message__error {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background-color: rgba(244, 67, 54, 0.9);
+  color: white;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* ============================================================================
+   Video Messages
+   ============================================================================ */
+
+.video-message {
+  max-width: 70%;
+  cursor: pointer;
+}
+
+.video-message--npc {
+  align-self: flex-start;
+}
+
+.video-message--player {
+  align-self: flex-end;
+}
+
+.video-message__wrapper {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #2d2d2d;
+}
+
+.video-message__video {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+}
+
+.video-message__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #2d2d2d;
+  border-radius: 12px;
+  min-width: 150px;
+  min-height: 100px;
+}
+
+.video-message__placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.video-message__placeholder-text {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+}
+
+.video-message--invalid .video-message__wrapper {
+  border: 2px dashed #f44336;
+}
+
+.video-message__error {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background-color: rgba(244, 67, 54, 0.9);
+  color: white;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* ============================================================================
+   Typing Indicator
+   ============================================================================ */
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #2d2d2d;
+  border-radius: 18px;
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+  max-width: 120px;
+  cursor: pointer;
+}
+
+.typing-indicator__dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-indicator__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #888;
+}
+
+.typing-indicator--animated .typing-indicator__dot {
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-indicator--animated .typing-indicator__dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator--animated .typing-indicator__dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator--animated .typing-indicator__dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.typing-indicator__duration {
+  font-size: 11px;
+  color: #666;
+}
+
+/* ============================================================================
+   Wait Indicator
+   ============================================================================ */
+
+.wait-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #2d2d2d;
+  border: 1px dashed #555;
+  border-radius: 8px;
+  color: #a0a0a0;
+  font-size: 13px;
+  cursor: pointer;
+  align-self: center;
+  margin: 8px 0;
+  transition: border-color 0.15s ease;
+}
+
+.wait-indicator:hover {
+  border-color: #888;
+}
+
+.wait-indicator__icon {
+  font-size: 16px;
+}
+
+.wait-indicator__text {
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ============================================================================
+   Choice Group
+   ============================================================================ */
+
+.choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.choice-group__choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #1e3a5f;
+  border: 1px solid #007acc;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.choice-group__choice:hover:not(:disabled) {
+  background-color: #234d7a;
+  transform: translateX(4px);
+}
+
+.choice-group__choice:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.choice-group__choice-prefix {
+  font-weight: bold;
+  opacity: 0.7;
+  min-width: 16px;
+}
+
+.choice-group__choice-text {
+  flex: 1;
+}
+
+.choice-group__choice-divert {
+  font-size: 12px;
+  color: #88c0d0;
+  opacity: 0.8;
+}
+
+.choice-group__choice--sticky {
+  border-style: dashed;
+}
+
+.choice-group__choice--empty {
+  border-style: dotted;
+  opacity: 0.8;
+}
+
+.choice-group__choice-placeholder {
+  color: #888;
+  font-style: italic;
+}
+
+/* ============================================================================
+   Transition Card
+   ============================================================================ */
+
+.transition-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.transition-card:hover {
+  transform: scale(1.02);
+}
+
+.transition-card__title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.transition-card__subtitle {
+  font-size: 14px;
+  color: #a0a0a0;
+  font-style: italic;
+}
+
+/* ============================================================================
+   Side Story Marker
+   ============================================================================ */
+
+.side-story-marker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: #2d3748;
+  border-left: 3px solid #805ad5;
+  border-radius: 0 8px 8px 0;
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  align-self: flex-start;
+}
+
+.side-story-marker:hover {
+  background-color: #3d4a5c;
+}
+
+.side-story-marker__icon {
+  font-size: 16px;
+}
+
+.side-story-marker__label {
+  color: #a0aec0;
+  margin-right: 4px;
+}
+
+.side-story-marker__name {
+  font-weight: 500;
+  color: #d6bcfa;
+}
+
+/* ============================================================================
+   Flag Operation Badge
+   ============================================================================ */
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+  align-self: flex-start;
+}
+
+.flag-badge:hover {
+  transform: scale(1.05);
+}
+
+.flag-badge--set {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+  border: 1px solid #4caf50;
+}
+
+.flag-badge--remove {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #e57373;
+  border: 1px solid #f44336;
+}
+
+.flag-badge__icon {
+  font-size: 14px;
+}
+
+.flag-badge__operation {
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.flag-badge__name {
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ============================================================================
+   Divert Arrow
+   ============================================================================ */
+
+.divert-arrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #1e1e1e;
+  border: 1px dashed #555;
+  border-radius: 8px;
+  color: #88c0d0;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  align-self: center;
+  margin: 8px 0;
+}
+
+.divert-arrow:hover {
+  border-color: #88c0d0;
+}
+
+.divert-arrow__symbol {
+  font-weight: bold;
+}
+
+.divert-arrow__target {
+  color: #a3d9a5;
+}
+
+.divert-arrow__target--end {
+  color: #f48771;
+  font-weight: bold;
+}
+
+/* ============================================================================
+   Conditional Block
+   ============================================================================ */
+
+.conditional-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background-color: rgba(128, 90, 213, 0.1);
+  border: 1px solid #805ad5;
+  border-radius: 8px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.conditional-block__header {
+  font-size: 11px;
+  color: #805ad5;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.conditional-block__branch {
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  margin-left: 12px;
+  border-left: 2px solid #555;
+}
+
+.conditional-block__branch--else {
+  border-left-color: #f48771;
+}
+
+.conditional-block__branch-header {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-bottom: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.conditional-block__branch-content {
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   Raw Content
+   ============================================================================ */
+
+.raw-content {
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #888;
+  white-space: pre-wrap;
+  word-break: break-all;
+  align-self: stretch;
+  cursor: pointer;
+}
+
+.raw-content:hover {
+  border-color: #555;
+}
+
+/* ============================================================================
+   Empty State
+   ============================================================================ */
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: #666;
+  text-align: center;
+}
+
+.preview-empty__icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.preview-empty__text {
+  font-size: 14px;
+}
+
+/* ============================================================================
+   Selection Wrapper (for edit mode)
+   ============================================================================ */
+
+.preview-item-wrapper {
+  display: contents;
+}
+
+.preview-item-wrapper--selected > * {
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+  position: relative;
+}
+
+.preview-item-wrapper--selected > *::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  background-color: rgba(0, 122, 204, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* ============================================================================
+   Caret Indicator
+   ============================================================================ */
+
+.caret-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  margin: 4px 0;
+}
+
+.caret-indicator__line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #007acc, transparent);
+  border-radius: 1px;
+}
+
+.caret-indicator__label {
+  font-size: 10px;
+  color: #007acc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  padding: 2px 8px;
+  background-color: rgba(0, 122, 204, 0.15);
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.caret-indicator--nested {
+  margin-left: 24px;
+}
+
+.caret-indicator--nested .caret-indicator__line {
+  background: linear-gradient(90deg, transparent, #805ad5, transparent);
+}
+
+.caret-indicator--nested .caret-indicator__label {
+  color: #805ad5;
+  background-color: rgba(128, 90, 213, 0.15);
+}
+
+/* ============================================================================
+   Nested Content (inside choices)
+   ============================================================================ */
+
+.choice-with-nested {
+  width: 100%;
+}
+
+.nested-content {
+  margin-left: 24px;
+  padding-left: 12px;
+  border-left: 2px solid #805ad5;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nested-content--empty {
+  padding: 8px 12px;
+  background-color: rgba(128, 90, 213, 0.05);
+  border-radius: 0 8px 8px 0;
+}
+
+.nested-content__hint {
+  font-size: 11px;
+  color: #805ad5;
+  font-style: italic;
+  text-align: center;
+  padding: 4px 0;
+}

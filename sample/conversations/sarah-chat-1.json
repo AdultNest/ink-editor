@@ -1,0 +1,11 @@
+{
+    "storyId": "sarah-chat-1",
+    "contactID": "sarah",
+    "nextStoryId": "sarah-chat-2",
+    "isStartingStory": true,
+    "forceTimeInHours": 14,
+    "passTimeInMinutes": 30,
+    "timeIsExact": false,
+    "forceDay": 0,
+    "isSideStory": false
+}

@@ -1,0 +1,110 @@
+/**
+ * SaveChangesDialog styles
+ */
+
+.save-changes-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.save-changes-dialog {
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 6px;
+  padding: 20px 24px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.save-changes-dialog__title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.save-changes-dialog__message {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--vscode-foreground, #cccccc);
+  line-height: 1.5;
+}
+
+.save-changes-dialog__message strong {
+  color: var(--vscode-textLink-foreground, #4fc1ff);
+}
+
+.save-changes-dialog__warning {
+  margin: 0 0 20px 0;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #8c8c8c);
+}
+
+.save-changes-dialog__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.save-changes-dialog__actions-right {
+  display: flex;
+  gap: 8px;
+}
+
+.save-changes-dialog__button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.save-changes-dialog__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-changes-dialog__button--dont-save {
+  background-color: transparent;
+  border-color: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.save-changes-dialog__button--dont-save:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.save-changes-dialog__button--cancel {
+  background-color: var(--vscode-button-secondaryBackground, #3a3d41);
+  color: var(--vscode-button-secondaryForeground, #cccccc);
+}
+
+.save-changes-dialog__button--cancel:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground, #45494e);
+}
+
+.save-changes-dialog__button--save {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  min-width: 80px;
+}
+
+.save-changes-dialog__button--save:hover:not(:disabled) {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.save-changes-dialog__button--save:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}

@@ -1,0 +1,399 @@
+/**
+ * Ink node styles
+ */
+
+/* Base node styles */
+.ink-node {
+  border-radius: 8px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.ink-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.ink-node-selected {
+  box-shadow: 0 0 0 2px #007acc, 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.ink-node-error {
+  border: 2px solid #f14c4c !important;
+}
+
+/* Handles */
+.ink-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background-color: #4a4a4a !important;
+  border: 2px solid #808080 !important;
+  border-radius: 50% !important;
+}
+
+.ink-handle:hover {
+  background-color: #007acc !important;
+  border-color: #007acc !important;
+  transform: scale(1.2);
+}
+
+/* Default handle positions for top/bottom */
+.ink-handle-target {
+  top: -6px !important;
+}
+
+.ink-handle-source {
+  bottom: -6px !important;
+}
+
+/* Left-positioned handles - vertically centered */
+.ink-node .react-flow__handle-left {
+  top: 50% !important;
+  left: -6px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Right-positioned handles - vertically centered */
+.ink-node .react-flow__handle-right {
+  top: 50% !important;
+  right: -6px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Knot node - new design with full content */
+.ink-knot-node {
+  min-width: 200px;
+  max-width: 350px;
+  background-color: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  overflow: hidden;
+}
+
+.ink-knot-header {
+  padding: 8px 12px;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.ink-knot-name {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-weight: 600;
+  color: #4ec9b0;
+  font-size: 13px;
+}
+
+.ink-knot-body {
+  padding: 8px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.ink-knot-content {
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Handle section at bottom */
+.ink-knot-handles {
+  padding: 6px 0;
+  background-color: #252526;
+}
+
+.ink-knot-handle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px;
+  gap: 12px;
+}
+
+.ink-knot-handle-row:hover {
+  background-color: #2a2d2e;
+}
+
+.ink-knot-handle-label {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: #ce9178;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ink-handle-divert {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  flex-shrink: 0;
+}
+
+.ink-knot-no-diverts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.ink-knot-no-diverts-text {
+  color: #606060;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.ink-knot-no-diverts .ink-handle {
+  position: absolute !important;
+  bottom: -6px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+/* Start node */
+.ink-start-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+  padding: 16px 20px;
+  background-color: #1e4620;
+  border: 2px solid #4caf50;
+  text-align: center;
+}
+
+.ink-start-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: #4caf50;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ink-start-target {
+  margin-top: 6px;
+  color: #81c784;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* StartNode handle - right positioned, vertically centered */
+.ink-start-node .ink-handle-source {
+  top: 50% !important;
+  right: -6px !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+}
+
+/* End node */
+.ink-end-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+  padding: 16px 20px;
+  background-color: #4a1a1a;
+  border: 2px solid #f44336;
+  text-align: center;
+}
+
+.ink-end-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: #f44336;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* EndNode handle - left positioned, vertically centered */
+.ink-end-node .ink-handle-target {
+  top: 50% !important;
+  left: -6px !important;
+  transform: translateY(-50%) !important;
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #007acc;
+  stroke-width: 3;
+}
+
+/* Custom edge label for choice text */
+.react-flow__edge-text {
+  font-size: 10px;
+  fill: #b0b0b0;
+}
+
+/* Region node (group container) */
+.ink-region-node {
+  background-color: rgba(40, 50, 60, 0.3);
+  border: 2px dashed #5a6a7a;
+  border-radius: 12px;
+  pointer-events: all;
+  box-sizing: border-box;
+}
+
+.ink-region-node:hover {
+  border-color: #7a8a9a;
+  background-color: rgba(40, 50, 60, 0.4);
+}
+
+.ink-region-node.ink-node-selected {
+  border-color: #007acc;
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+}
+
+.ink-region-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: rgba(50, 60, 70, 0.8);
+  border-bottom: 1px dashed #5a6a7a;
+  border-radius: 10px 10px 0 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.ink-region-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #9cdcfe;
+}
+
+.ink-region-count {
+  font-size: 11px;
+  color: #808080;
+  font-style: italic;
+}
+
+/* Flag indicators in knot header */
+.ink-knot-flag-indicators {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.ink-knot-flag-badge {
+  font-size: 10px;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.ink-knot-flag-badge-set {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.ink-knot-flag-badge-remove {
+  background: rgba(244, 67, 54, 0.2);
+  color: #e57373;
+}
+
+/* Knot header with flag indicators */
+.ink-knot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Conditional diverts section */
+.ink-knot-conditional-section {
+  border-top: 1px solid #3c3c3c;
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.ink-knot-conditional-header {
+  padding: 4px 12px;
+  background: rgba(33, 150, 243, 0.15);
+  border-bottom: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.ink-knot-conditional-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64b5f6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ink-knot-conditional-handles {
+  background-color: rgba(33, 150, 243, 0.03);
+}
+
+.ink-knot-handle-row-conditional {
+  background-color: transparent;
+}
+
+.ink-knot-handle-row-conditional:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.ink-knot-handle-row-else {
+  background-color: rgba(156, 39, 176, 0.05);
+}
+
+.ink-knot-handle-row-else:hover {
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+.ink-knot-conditional-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #b0b0b0;
+}
+
+.ink-knot-condition-flag {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 10px;
+  padding: 1px 4px;
+  background: rgba(33, 150, 243, 0.2);
+  color: #64b5f6;
+  border-radius: 3px;
+}
+
+.ink-knot-else-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: rgba(156, 39, 176, 0.2);
+  color: #ba68c8;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.ink-knot-conditional-arrow {
+  color: #606060;
+  font-size: 10px;
+}
+
+.ink-knot-conditional-target {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: #9cdcfe;
+}
+
+.ink-handle-conditional {
+  background-color: #1a4a6b !important;
+  border-color: #2196f3 !important;
+}
+
+.ink-handle-conditional:hover {
+  background-color: #2196f3 !important;
+  border-color: #64b5f6 !important;
+}

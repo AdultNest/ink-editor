@@ -1,0 +1,44 @@
+{
+  "availableMethods": [
+    {
+      "name": "GetStoryFlag",
+      "params": ["flagName"],
+      "description": "Check if a story flag is set"
+    },
+    {
+      "name": "SetStoryFlag",
+      "params": ["flagName"],
+      "description": "Set a story flag"
+    },
+    {
+      "name": "RemoveStoryFlag",
+      "params": ["flagName"],
+      "description": "Remove a story flag"
+    },
+    {
+      "name": "ShowCustomTransition",
+      "params": ["title", "subtitle"],
+      "description": "Show a custom transition screen"
+    },
+    {
+      "name": "SetContactDescription",
+      "params": ["contactId", "newDescription"],
+      "description": "Set the description of a contact"
+    },
+    {
+      "name": "SetContactPersonality",
+      "params": ["contactId", "personality"],
+      "description": "Set the personality of a contact"
+    },
+    {
+      "name": "SetContactHistory",
+      "params": ["contactId", "history"],
+      "description": "Set the history of a contact"
+    },
+    {
+      "name": "RunCommand",
+      "params": ["command"],
+      "description": "Run a custom command"
+    }
+  ]
+}

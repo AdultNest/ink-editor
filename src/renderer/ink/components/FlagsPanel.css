@@ -1,0 +1,181 @@
+/**
+ * FlagsPanel styles
+ */
+
+.flags-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #252526;
+  border-left: 1px solid #3c3c3c;
+  overflow: hidden;
+}
+
+.flags-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+}
+
+.flags-panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cccccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.flags-panel-count {
+  background: #4c4c4c;
+  color: #cccccc;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.flags-panel-empty {
+  padding: 20px 12px;
+  color: #808080;
+  font-size: 12px;
+  text-align: center;
+}
+
+.flags-panel-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #606060;
+}
+
+.flags-panel-hint code {
+  background: #1e1e1e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 10px;
+  color: #9cdcfe;
+}
+
+.flags-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.flags-panel-item {
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.flags-panel-item-highlight {
+  border-color: #ffc107;
+  box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.3);
+}
+
+.flags-panel-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.flags-panel-flag-name {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dcdcaa;
+}
+
+.flags-panel-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.flags-panel-badge {
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.flags-panel-badge-set {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.flags-panel-badge-remove {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.flags-panel-badge-check {
+  background: rgba(33, 150, 243, 0.2);
+  color: #2196f3;
+}
+
+.flags-panel-occurrences {
+  padding: 6px;
+}
+
+.flags-panel-occurrence {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #b0b0b0;
+  transition: background 0.15s;
+}
+
+.flags-panel-occurrence:hover {
+  background: #2a2a2a;
+}
+
+.flags-panel-occurrence-selected {
+  background: rgba(255, 193, 7, 0.1);
+}
+
+.flags-panel-op {
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.flags-panel-op-set {
+  background: rgba(76, 175, 80, 0.3);
+  color: #81c784;
+}
+
+.flags-panel-op-remove {
+  background: rgba(244, 67, 54, 0.3);
+  color: #e57373;
+}
+
+.flags-panel-op-check {
+  background: rgba(33, 150, 243, 0.3);
+  color: #64b5f6;
+}
+
+.flags-panel-knot-name {
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #9cdcfe;
+}
+
+.flags-panel-divert {
+  color: #808080;
+  font-family: 'Consolas', 'Monaco', monospace;
+}

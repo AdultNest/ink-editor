@@ -1,0 +1,273 @@
+/**
+ * ImportsPanel styles
+ */
+
+.imports-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #252526;
+  border-left: 1px solid #3c3c3c;
+  overflow: hidden;
+}
+
+.imports-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3c3c3c;
+  flex-shrink: 0;
+}
+
+.imports-panel-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cccccc;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.imports-panel-count {
+  background: #4c4c4c;
+  color: #cccccc;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.imports-panel-empty {
+  padding: 20px 12px;
+  color: #808080;
+  font-size: 12px;
+  text-align: center;
+}
+
+.imports-panel-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #606060;
+}
+
+.imports-panel-hint code {
+  background: #1e1e1e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 10px;
+  color: #9cdcfe;
+}
+
+.imports-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.imports-panel-section {
+  margin-bottom: 12px;
+}
+
+.imports-panel-section-header {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.imports-panel-section-valid {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+
+.imports-panel-section-warning {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.imports-panel-section-error {
+  background: rgba(244, 67, 54, 0.15);
+  color: #f44336;
+}
+
+.imports-panel-item {
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.imports-panel-item:hover {
+  background: #2a2a2a;
+}
+
+.imports-panel-item-valid {
+  border-left: 3px solid #4caf50;
+}
+
+.imports-panel-item-warning {
+  border-left: 3px solid #ffc107;
+}
+
+.imports-panel-item-error {
+  border-left: 3px solid #f44336;
+  cursor: default;
+}
+
+.imports-panel-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.imports-panel-name {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dcdcaa;
+}
+
+.imports-panel-badges {
+  display: flex;
+  gap: 4px;
+}
+
+.imports-panel-badge {
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.imports-panel-badge-valid {
+  background: rgba(76, 175, 80, 0.3);
+  color: #81c784;
+}
+
+.imports-panel-badge-warning {
+  background: rgba(255, 193, 7, 0.3);
+  color: #ffca28;
+}
+
+.imports-panel-badge-error {
+  background: rgba(244, 67, 54, 0.3);
+  color: #e57373;
+}
+
+.imports-panel-badge-usage {
+  background: rgba(33, 150, 243, 0.2);
+  color: #64b5f6;
+}
+
+.imports-panel-params {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  color: #9cdcfe;
+  margin-bottom: 4px;
+}
+
+.imports-panel-description {
+  font-size: 11px;
+  color: #808080;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.imports-panel-line {
+  font-size: 10px;
+  color: #606060;
+}
+
+.imports-panel-fix-hint {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #3c3c3c;
+  font-size: 10px;
+  color: #808080;
+}
+
+.imports-panel-fix-hint code {
+  background: #1e1e1e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 10px;
+  color: #ce9178;
+  display: block;
+  margin-top: 4px;
+}
+
+/* Available section */
+.imports-panel-section-available {
+  background: rgba(100, 100, 100, 0.15);
+  color: #808080;
+}
+
+.imports-panel-item-available {
+  border-left: 3px solid #606060;
+  cursor: default;
+  opacity: 0.8;
+}
+
+.imports-panel-item-available:hover {
+  opacity: 1;
+}
+
+.imports-panel-name-dimmed {
+  color: #808080;
+}
+
+.imports-panel-name-clickable {
+  cursor: pointer;
+}
+
+.imports-panel-name-clickable:hover {
+  text-decoration: underline;
+}
+
+.imports-panel-params-dimmed {
+  color: #606060;
+}
+
+/* Toggle buttons */
+.imports-panel-toggle-btn {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+.imports-panel-toggle-add {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.imports-panel-toggle-add:hover {
+  background: rgba(76, 175, 80, 0.4);
+}
+
+.imports-panel-toggle-remove {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 6px;
+}
+
+.imports-panel-toggle-remove:hover {
+  background: rgba(244, 67, 54, 0.4);
+}
