@@ -13,19 +13,31 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
+import { nodeTypes } from './nodes';
+
 // Initial nodes for the canvas
 const initialNodes: Node[] = [
   {
     id: '1',
-    type: 'default',
-    position: { x: 250, y: 100 },
-    data: { label: 'Start Node' },
+    type: 'textNode',
+    position: { x: 250, y: 50 },
+    data: { label: 'Welcome to the Editor' },
   },
   {
     id: '2',
-    type: 'default',
-    position: { x: 250, y: 250 },
-    data: { label: 'End Node' },
+    type: 'textNode',
+    position: { x: 250, y: 200 },
+    data: { label: 'This is a text node' },
+  },
+  {
+    id: '3',
+    type: 'imageNode',
+    position: { x: 500, y: 100 },
+    data: {
+      src: 'https://via.placeholder.com/150',
+      alt: 'Sample image',
+      label: 'Image Node',
+    },
   },
 ];
 
@@ -35,6 +47,11 @@ const initialEdges: Edge[] = [
     id: 'e1-2',
     source: '1',
     target: '2',
+  },
+  {
+    id: 'e1-3',
+    source: '1',
+    target: '3',
   },
 ];
 
@@ -52,6 +69,7 @@ function App() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
