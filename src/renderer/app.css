@@ -8,10 +8,17 @@
 html, body {
   width: 100%;
   height: 100%;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 #root {
+  width: 100%;
+  height: 100%;
+}
+
+/* React Flow canvas wrapper */
+.react-flow-wrapper {
   width: 100%;
   height: 100%;
 }
