@@ -13,5 +13,7 @@ export { JsonEditor, type JsonEditorProps } from './JsonEditor';
 export { ModJsonEditor, type ModJsonEditorProps } from './ModJsonEditor';
 export { CharacterJsonEditor, type CharacterJsonEditorProps } from './CharacterJsonEditor';
 export { ConversationJsonEditor, type ConversationJsonEditorProps } from './ConversationJsonEditor';
+export { CharacterConfigEditor, type CharacterConfigEditorProps } from './CharacterConfigEditor';
+export { PromptLibraryEditor, type PromptLibraryEditorProps } from './PromptLibraryEditor';
 
 export { ContentView as default } from './ContentView';

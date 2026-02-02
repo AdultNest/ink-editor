@@ -18,17 +18,30 @@ export type KnotNodeType = Node<KnotNodeData, 'knotNode'>;
 
 /**
  * Get display text for a divert handle
+ * Returns { label, subtext } for labeled choices, or just { label } for others
  */
-function getDivertLabel(divert: InkDivert): string {
-  if (divert.context === 'choice' && divert.choiceText) {
-    // Truncate long choice text
-    const text = divert.choiceText;
-    if (text.length > 25) {
-      return text.substring(0, 22) + '...';
+function getDivertLabel(divert: InkDivert): { label: string; subtext?: string } {
+  if (divert.context === 'choice') {
+    // If there's an explicit label, show that as main text and choiceText as subtext
+    if (divert.choiceLabel) {
+      const label = divert.choiceLabel.length > 20
+        ? divert.choiceLabel.substring(0, 17) + '...'
+        : divert.choiceLabel;
+      const subtext = divert.choiceText && divert.choiceText.length > 30
+        ? divert.choiceText.substring(0, 27) + '...'
+        : divert.choiceText;
+      return { label, subtext };
     }
-    return text;
+    // No explicit label, use choice text
+    if (divert.choiceText) {
+      const text = divert.choiceText;
+      if (text.length > 25) {
+        return { label: text.substring(0, 22) + '...' };
+      }
+      return { label: text };
+    }
   }
-  return divert.target;
+  return { label: divert.target };
 }
 
 /**
@@ -120,21 +133,27 @@ function KnotNode({ data, selected }: NodeProps<KnotNodeType>) {
 
       {/* Regular output handles - one per divert */}
       <div className="ink-knot-handles">
-        {diverts.map((divert) => (
-          <div key={getDivertHandleId(divert)} className="ink-knot-handle-row">
-            <span className="ink-knot-handle-label">
-              {divert.context === 'choice' ? '* ' : '-> '}
-              {getDivertLabel(divert)}
-            </span>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={getDivertHandleId(divert)}
-              className="ink-handle ink-handle-source ink-handle-divert"
-              style={{ position: 'relative', top: 0, right: 0, transform: 'none' }}
-            />
-          </div>
-        ))}
+        {diverts.map((divert) => {
+          const labelInfo = getDivertLabel(divert);
+          return (
+            <div key={getDivertHandleId(divert)} className={`ink-knot-handle-row ${labelInfo.subtext ? 'ink-knot-handle-row-labeled' : ''}`}>
+              <span className="ink-knot-handle-label">
+                {divert.context === 'choice' ? '* ' : '-> '}
+                <span className="ink-knot-handle-label-text">{labelInfo.label}</span>
+                {labelInfo.subtext && (
+                  <span className="ink-knot-handle-label-subtext">{labelInfo.subtext}</span>
+                )}
+              </span>
+              <Handle
+                type="source"
+                position={Position.Right}
+                id={getDivertHandleId(divert)}
+                className="ink-handle ink-handle-source ink-handle-divert"
+                style={{ position: 'relative', top: 0, right: 0, transform: 'none' }}
+              />
+            </div>
+          );
+        })}
         {diverts.length === 0 && conditionalDiverts.length === 0 && (
           <div className="ink-knot-no-diverts">
             <span className="ink-knot-no-diverts-text">No diverts</span>

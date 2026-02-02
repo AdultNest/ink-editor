@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "id": "loc_cafe",
+      "name": "Cafe",
+      "category": "location",
+      "positive": "cafe, coffee shop, indoor, cozy atmosphere, warm lighting",
+      "negative": "outdoor"
+    },
+    {
+      "id": "loc_beach",
+      "name": "Beach",
+      "category": "location",
+      "positive": "beach, ocean, sand, seaside, waves",
+      "negative": "indoor"
+    },
+    {
+      "id": "loc_office",
+      "name": "Office",
+      "category": "location",
+      "positive": "office, desk, modern office, professional setting",
+      "negative": "outdoor, nature"
+    },
+    {
+      "id": "loc_park",
+      "name": "Park",
+      "category": "location",
+      "positive": "park, outdoor, trees, grass, nature, sunny",
+      "negative": "indoor"
+    },
+    {
+      "id": "loc_bedroom",
+      "name": "Bedroom",
+      "category": "location",
+      "positive": "bedroom, bed, indoor, private room, cozy",
+      "negative": "outdoor"
+    },
+    {
+      "id": "loc_kitchen",
+      "name": "Kitchen",
+      "category": "location",
+      "positive": "kitchen, cooking, indoor, domestic",
+      "negative": "outdoor"
+    },
+    {
+      "id": "loc_library",
+      "name": "Library",
+      "category": "location",
+      "positive": "library, books, bookshelves, quiet, reading room",
+      "negative": "outdoor"
+    },
+    {
+      "id": "loc_street",
+      "name": "Street",
+      "category": "location",
+      "positive": "street, urban, city, outdoors, buildings",
+      "negative": "indoor"
+    },
+    {
+      "id": "loc_forest",
+      "name": "Forest",
+      "category": "location",
+      "positive": "forest, trees, nature, woodland, outdoor",
+      "negative": "indoor, urban"
+    },
+    {
+      "id": "loc_gym",
+      "name": "Gym",
+      "category": "location",
+      "positive": "gym, fitness center, exercise equipment, workout",
+      "negative": "outdoor"
+    },
+    {
+      "id": "cloth_casual",
+      "name": "Casual",
+      "category": "clothing",
+      "positive": "casual clothes, relaxed outfit, comfortable attire",
+      "negative": "formal wear, suit"
+    },
+    {
+      "id": "cloth_formal",
+      "name": "Formal",
+      "category": "clothing",
+      "positive": "formal attire, elegant dress, sophisticated outfit",
+      "negative": "casual, athletic"
+    },
+    {
+      "id": "cloth_suit",
+      "name": "Business Suit",
+      "category": "clothing",
+      "positive": "business suit, professional attire, dress shirt, tie",
+      "negative": "casual, swimwear"
+    },
+    {
+      "id": "cloth_dress",
+      "name": "Summer Dress",
+      "category": "clothing",
+      "positive": "summer dress, floral dress, light fabric, feminine",
+      "negative": "winter clothes, suit"
+    },
+    {
+      "id": "cloth_swim",
+      "name": "Swimwear",
+      "category": "clothing",
+      "positive": "swimwear, bikini, swimsuit, beach attire",
+      "negative": "formal, winter clothes"
+    },
+    {
+      "id": "cloth_winter",
+      "name": "Winter Coat",
+      "category": "clothing",
+      "positive": "winter coat, warm clothes, scarf, layers",
+      "negative": "swimwear, summer clothes"
+    },
+    {
+      "id": "cloth_athletic",
+      "name": "Athletic Wear",
+      "category": "clothing",
+      "positive": "athletic wear, sports clothes, workout outfit, activewear",
+      "negative": "formal, suit"
+    },
+    {
+      "id": "cloth_sleep",
+      "name": "Sleepwear",
+      "category": "clothing",
+      "positive": "sleepwear, pajamas, nightwear, comfortable",
+      "negative": "formal, athletic"
+    },
+    {
+      "id": "act_sitting",
+      "name": "Sitting",
+      "category": "action",
+      "positive": "sitting, seated, sitting down",
+      "negative": "standing, walking, running"
+    },
+    {
+      "id": "act_standing",
+      "name": "Standing",
+      "category": "action",
+      "positive": "standing, upright, standing pose",
+      "negative": "sitting, lying down"
+    },
+    {
+      "id": "act_walking",
+      "name": "Walking",
+      "category": "action",
+      "positive": "walking, strolling, moving",
+      "negative": "sitting, standing still"
+    },
+    {
+      "id": "act_running",
+      "name": "Running",
+      "category": "action",
+      "positive": "running, jogging, athletic movement",
+      "negative": "sitting, standing still"
+    },
+    {
+      "id": "act_reading",
+      "name": "Reading",
+      "category": "action",
+      "positive": "reading, holding book, focused on book",
+      "negative": "looking at camera"
+    },
+    {
+      "id": "act_eating",
+      "name": "Eating",
+      "category": "action",
+      "positive": "eating, dining, with food",
+      "negative": ""
+    },
+    {
+      "id": "act_drinking",
+      "name": "Drinking",
+      "category": "action",
+      "positive": "drinking, holding drink, cup, glass",
+      "negative": ""
+    },
+    {
+      "id": "act_talking",
+      "name": "Talking",
+      "category": "action",
+      "positive": "talking, speaking, conversation, open mouth",
+      "negative": "silent"
+    },
+    {
+      "id": "act_sleeping",
+      "name": "Sleeping",
+      "category": "action",
+      "positive": "sleeping, asleep, closed eyes, resting",
+      "negative": "awake, standing"
+    },
+    {
+      "id": "act_working",
+      "name": "Working",
+      "category": "action",
+      "positive": "working, focused, at desk, typing",
+      "negative": "relaxing"
+    },
+    {
+      "id": "time_morning",
+      "name": "Morning",
+      "category": "time_weather",
+      "positive": "morning, sunrise, early day, golden hour, warm light",
+      "negative": "night, dark"
+    },
+    {
+      "id": "time_afternoon",
+      "name": "Afternoon",
+      "category": "time_weather",
+      "positive": "afternoon, daylight, midday, bright",
+      "negative": "night, dark"
+    },
+    {
+      "id": "time_evening",
+      "name": "Evening",
+      "category": "time_weather",
+      "positive": "evening, sunset, dusk, orange sky, golden hour",
+      "negative": "midday, morning"
+    },
+    {
+      "id": "time_night",
+      "name": "Night",
+      "category": "time_weather",
+      "positive": "night, nighttime, dark, moonlight, artificial lighting",
+      "negative": "daylight, sunny"
+    },
+    {
+      "id": "weather_sunny",
+      "name": "Sunny",
+      "category": "time_weather",
+      "positive": "sunny, bright, clear sky, sunlight, warm",
+      "negative": "cloudy, rainy, dark"
+    },
+    {
+      "id": "weather_cloudy",
+      "name": "Cloudy",
+      "category": "time_weather",
+      "positive": "cloudy, overcast, grey sky, diffused light",
+      "negative": "sunny, clear sky"
+    },
+    {
+      "id": "weather_rainy",
+      "name": "Rainy",
+      "category": "time_weather",
+      "positive": "rainy, rain, wet, raindrops, umbrella",
+      "negative": "sunny, dry"
+    },
+    {
+      "id": "weather_snowy",
+      "name": "Snowy",
+      "category": "time_weather",
+      "positive": "snowy, snow, winter, cold, white",
+      "negative": "summer, warm"
+    },
+    {
+      "id": "weather_foggy",
+      "name": "Foggy",
+      "category": "time_weather",
+      "positive": "foggy, misty, fog, hazy, atmospheric",
+      "negative": "clear, sunny"
+    }
+  ]
+}

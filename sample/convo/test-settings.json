@@ -1,0 +1,14 @@
+{
+    "storyId": "test",
+    "contactID": "",
+    "nextStoryId": "",
+    "isStartingStory": true,
+    "forceTimeInHours": 12,
+    "passTimeInMinutes": 0,
+    "timeIsExact": false,
+    "forceDay": 0,
+    "isSideStory": false,
+    "name": "test",
+    "description": "",
+    "variables": {}
+}

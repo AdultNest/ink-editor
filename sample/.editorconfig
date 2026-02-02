@@ -1,9 +1,16 @@
 {
   "openTabs": [
+    "methods.conf",
+    ".editorconfig",
+    "convo/test-settings.json",
+    "characters/dion.json",
+    "characters/dion.conf",
     "convo/test.ink",
-    "convo/dion-helly-leak.ink",
-    "conversations/sarah-chat-1.ink",
-    "conversations/grouped-chat.ink"
+    ".prompt-library.json",
+    "conversations/grouped-chat-settings.json",
+    "conversations/sarah-chat-1-settings.json",
+    "conversations/sarah-chat-2-flags.ink"
   ],
-  "activeTab": "conversations/grouped-chat.ink"
+  "activeTab": "characters/dion.conf",
+  "collapsedFolders": []
 }

@@ -4,9 +4,21 @@
  * Polymorphic editor for different content item types.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import type { KnotContentItem } from '../parser/inkTypes';
 import { MediaValidator } from '../parser/mediaValidator';
+import type { AppSettings } from '../../../preload';
+import type { CharacterAIConfig } from '../ai/characterConfig';
+import { buildImagePromptWithCharacter } from '../ai/characterConfig';
+import {
+  type ProjectPromptLibrary,
+  PromptComponentCategory,
+  CATEGORY_INFO,
+  promptLibraryService,
+  getDefaultLibrary,
+  promptBuilder,
+} from '../../../renderer/services';
+import { ImageGenerator } from '../../../renderer/components/ImageGenerator';
 
 import './KnotVisualEditor.css';
 
@@ -25,10 +37,16 @@ export interface ContentItemEditorProps {
   projectPath: string;
   /** Available knot names for divert autocomplete */
   availableKnots: string[];
+  /** Available stitch paths for divert autocomplete (format: knot.stitch) */
+  availableStitches?: string[];
   /** Available flag names for autocomplete */
   availableFlags: string[];
   /** Validation error message */
   error?: string;
+  /** App settings for AI features */
+  appSettings?: AppSettings;
+  /** Character AI configuration for generation */
+  characterConfig?: CharacterAIConfig | null;
 }
 
 export function ContentItemEditor({
@@ -39,12 +57,21 @@ export function ContentItemEditor({
   onMoveDown,
   projectPath,
   availableKnots,
+  availableStitches = [],
   availableFlags,
   error,
+  appSettings,
+  characterConfig,
 }: ContentItemEditorProps) {
   // Available media files
   const [availableImages, setAvailableImages] = useState<string[]>([]);
   const [availableVideos, setAvailableVideos] = useState<string[]>([]);
+  const [mediaReloadTrigger, setMediaReloadTrigger] = useState(0);
+
+  // Callback to reload media after AI generation
+  const reloadMedia = useCallback(() => {
+    setMediaReloadTrigger(prev => prev + 1);
+  }, []);
 
   // Load available media files
   useEffect(() => {
@@ -62,7 +89,7 @@ export function ContentItemEditor({
     if (projectPath) {
       loadMedia();
     }
-  }, [projectPath]);
+  }, [projectPath, mediaReloadTrigger]);
 
   // Render editor based on item type
   const renderEditor = () => {
@@ -84,6 +111,9 @@ export function ContentItemEditor({
             onChange={(filename) => onChange({ filename })}
             error={error}
             projectPath={projectPath}
+            appSettings={appSettings}
+            characterConfig={characterConfig}
+            onImageGenerated={reloadMedia}
           />
         );
 
@@ -96,6 +126,9 @@ export function ContentItemEditor({
             isPlayer={true}
             error={error}
             projectPath={projectPath}
+            appSettings={appSettings}
+            characterConfig={characterConfig}
+            onImageGenerated={reloadMedia}
           />
         );
 
@@ -178,6 +211,7 @@ export function ContentItemEditor({
             isSticky={item.isSticky}
             divert={item.divert}
             availableKnots={availableKnots}
+            availableStitches={availableStitches}
             onChangeText={(text) => onChange({ text })}
             onChangeSticky={(isSticky) => onChange({ isSticky })}
             onChangeDivert={(divert) => onChange({ divert })}
@@ -200,6 +234,15 @@ export function ContentItemEditor({
           <RawEditor
             content={item.content}
             onChange={(content) => onChange({ content })}
+          />
+        );
+
+      case 'stitch':
+        return (
+          <StitchEditor
+            name={item.name}
+            onChange={(name) => onChange({ name })}
+            error={error}
           />
         );
 
@@ -277,6 +320,9 @@ function ImageEditor({
   isPlayer = false,
   error,
   projectPath,
+  appSettings,
+  characterConfig,
+  onImageGenerated,
 }: {
   filename: string;
   availableImages: string[];
@@ -284,12 +330,62 @@ function ImageEditor({
   isPlayer?: boolean;
   error?: string;
   projectPath: string;
+  appSettings?: AppSettings;
+  characterConfig?: CharacterAIConfig | null;
+  onImageGenerated?: () => void;
 }) {
   const [filterText, setFilterText] = useState('');
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiNegativePrompt, setAiNegativePrompt] = useState('');
+  const [selectedPromptSet, setSelectedPromptSet] = useState<string>('');
+  const [selectedMoodSet, setSelectedMoodSet] = useState<string>('');
+  const [generatedFilename, setGeneratedFilename] = useState<string>('');
+
+  // Prompt library state
+  const [promptLibrary, setPromptLibrary] = useState<ProjectPromptLibrary>(getDefaultLibrary());
+  const [selectedLibraryIds, setSelectedLibraryIds] = useState<Set<string>>(new Set());
+  const [activeLibraryCategory, setActiveLibraryCategory] = useState<PromptComponentCategory | null>(null);
+
+  // Load prompt library when AI panel is shown
+  useEffect(() => {
+    if (showAIPanel && projectPath) {
+      promptLibraryService.loadLibrary(projectPath)
+        .then(lib => setPromptLibrary(lib))
+        .catch(() => setPromptLibrary(getDefaultLibrary()));
+    }
+  }, [showAIPanel, projectPath]);
+
+  // Build prompt from selected library components
+  const libraryPrompt = useMemo(() => {
+    return promptLibraryService.buildPromptFromComponents(promptLibrary, Array.from(selectedLibraryIds));
+  }, [promptLibrary, selectedLibraryIds]);
+
+  // Toggle library component selection
+  const toggleLibraryComponent = useCallback((id: string) => {
+    setSelectedLibraryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   const filteredImages = availableImages.filter((img) =>
     img.toLowerCase().includes(filterText.toLowerCase())
   );
+
+  // Check if ComfyUI is configured
+  const isComfyUIEnabled = appSettings?.comfyui?.enabled &&
+    appSettings?.comfyui?.baseUrl &&
+    appSettings?.comfyui?.checkpointModel;
+
+  // Check if character has image prompt sets or mood sets
+  const hasPromptSets = characterConfig && characterConfig.imagePromptSets.length > 0;
+  const hasMoodSets = characterConfig && characterConfig.moodSets.length > 0;
 
   // Get image URL for thumbnail
   const getImageUrl = (img: string) => {
@@ -308,6 +404,75 @@ function ImageEditor({
     return imgBase === filename || img === filename;
   };
 
+  // Generate a unique filename for AI-generated images
+  const getDestFilename = useCallback(() => {
+    if (!generatedFilename) {
+      const timestamp = Date.now();
+      const newName = `ai_generated_${timestamp}`;
+      setGeneratedFilename(newName);
+      return newName;
+    }
+    return generatedFilename;
+  }, [generatedFilename]);
+
+  // Build combined prompts for ImageGenerator
+  const combinedPrompts = useMemo(() => {
+    // Build prompt with character's appearance if available
+    let appearancePrompt = { positive: '', negative: '' };
+    if (characterConfig?.appearance) {
+      appearancePrompt = promptBuilder.buildFullBodyPrompt(characterConfig.appearance);
+    }
+
+    // Build prompt with character's image prompt sets (legacy)
+    const { positive: charPositive, negative: charNegative } = buildImagePromptWithCharacter(
+      aiPrompt,
+      characterConfig || null,
+      selectedPromptSet || undefined
+    );
+
+    // Get mood hint from selected mood set
+    const moodHint = selectedMoodSet || '';
+
+    // Combine: appearance + character prompt set + mood + library components
+    const positiveParts = [
+      appearancePrompt.positive,
+      charPositive,
+      moodHint,
+      libraryPrompt.positive,
+    ].filter(Boolean);
+    const positive = positiveParts.join(', ');
+
+    // Combine negatives: appearance + character + library + user
+    const negativeParts = [
+      appearancePrompt.negative,
+      charNegative,
+      libraryPrompt.negative,
+      aiNegativePrompt,
+    ].filter(Boolean);
+    const negative = negativeParts.join(', ');
+
+    return { positive, negative };
+  }, [characterConfig, aiPrompt, selectedPromptSet, selectedMoodSet, libraryPrompt, aiNegativePrompt]);
+
+  // Handle when image is saved by ImageGenerator
+  const handleImageSaved = useCallback((savedPath: string) => {
+    // Extract filename from path (without extension)
+    const pathParts = savedPath.replace(/\\/g, '/').split('/');
+    const savedFilename = pathParts[pathParts.length - 1];
+    const filenameWithoutExt = stripExtension(savedFilename);
+
+    // Update the selected filename
+    onChange(filenameWithoutExt);
+
+    // Reload available images
+    if (onImageGenerated) {
+      onImageGenerated();
+    }
+
+    // Reset for next generation
+    setGeneratedFilename('');
+  }, [onChange, onImageGenerated]);
+
   return (
     <div className="content-item-editor__field">
       <label className="content-item-editor__label">
@@ -321,6 +486,168 @@ function ImageEditor({
         placeholder="Type filename (without extension)..."
       />
       {error && <div className="content-item-editor__error">{error}</div>}
+
+      {/* AI Generation Panel */}
+      <div className="content-item-editor__ai-section">
+        <button
+          type="button"
+          className="content-item-editor__ai-toggle"
+          onClick={() => setShowAIPanel(!showAIPanel)}
+        >
+          {showAIPanel ? '▼ AI Generate' : '▶ AI Generate'}
+          {characterConfig && (
+            <span className="content-item-editor__ai-character-badge">
+              {characterConfig.characterId}
+            </span>
+          )}
+        </button>
+
+        {showAIPanel && (
+          <div className="content-item-editor__ai-panel">
+            {!isComfyUIEnabled ? (
+              <div className="content-item-editor__ai-disabled">
+                ComfyUI not configured. Go to Settings to enable image generation.
+              </div>
+            ) : (
+              <>
+                {/* Character style selectors */}
+                {(hasPromptSets || hasMoodSets) && (
+                  <div className="content-item-editor__ai-row">
+                    {/* Prompt set selector */}
+                    {hasPromptSets && (
+                      <div className="content-item-editor__ai-field">
+                        <label className="content-item-editor__ai-label">Style</label>
+                        <select
+                          className="content-item-editor__select"
+                          value={selectedPromptSet}
+                          onChange={(e) => setSelectedPromptSet(e.target.value)}
+                        >
+                          <option value="">Default</option>
+                          {characterConfig!.imagePromptSets.map((ps) => (
+                            <option key={ps.name} value={ps.name}>
+                              {ps.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {/* Mood set selector */}
+                    {hasMoodSets && (
+                      <div className="content-item-editor__ai-field">
+                        <label className="content-item-editor__ai-label">Mood</label>
+                        <select
+                          className="content-item-editor__select"
+                          value={selectedMoodSet}
+                          onChange={(e) => setSelectedMoodSet(e.target.value)}
+                          title={selectedMoodSet ? characterConfig!.moodSets.find(m => m.name === selectedMoodSet)?.description : ''}
+                        >
+                          <option value="">None</option>
+                          {characterConfig!.moodSets.map((ms) => (
+                            <option key={ms.name} value={ms.name} title={ms.description}>
+                              {ms.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Prompt Library Quick Picker */}
+                <div className="content-item-editor__library-picker">
+                  <div className="content-item-editor__library-categories">
+                    {CATEGORY_INFO.map(info => {
+                      const components = promptLibraryService.getComponentsByCategory(promptLibrary, info.category);
+                      const selectedCount = components.filter(c => selectedLibraryIds.has(c.id)).length;
+                      return (
+                        <button
+                          key={info.category}
+                          type="button"
+                          className={`content-item-editor__library-cat-btn ${activeLibraryCategory === info.category ? 'active' : ''}`}
+                          onClick={() => setActiveLibraryCategory(activeLibraryCategory === info.category ? null : info.category)}
+                          title={info.description}
+                        >
+                          {info.icon} {info.label}
+                          {selectedCount > 0 && <span className="content-item-editor__library-cat-count">{selectedCount}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeLibraryCategory && (
+                    <div className="content-item-editor__library-chips">
+                      {promptLibraryService.getComponentsByCategory(promptLibrary, activeLibraryCategory).map(comp => (
+                        <button
+                          key={comp.id}
+                          type="button"
+                          className={`content-item-editor__library-chip ${selectedLibraryIds.has(comp.id) ? 'selected' : ''}`}
+                          onClick={() => toggleLibraryComponent(comp.id)}
+                          title={`${comp.positive}${comp.negative ? ` | Negative: ${comp.negative}` : ''}`}
+                        >
+                          {comp.name}
+                          {selectedLibraryIds.has(comp.id) && ' ✓'}
+                        </button>
+                      ))}
+                      {promptLibraryService.getComponentsByCategory(promptLibrary, activeLibraryCategory).length === 0 && (
+                        <span className="content-item-editor__library-empty">No components</span>
+                      )}
+                    </div>
+                  )}
+                  {selectedLibraryIds.size > 0 && (
+                    <div className="content-item-editor__library-selected">
+                      <span className="content-item-editor__library-selected-label">Selected:</span>
+                      {Array.from(selectedLibraryIds).map(id => {
+                        const comp = promptLibraryService.getComponentById(promptLibrary, id);
+                        return comp ? (
+                          <span
+                            key={id}
+                            className="content-item-editor__library-chip selected"
+                            onClick={() => toggleLibraryComponent(id)}
+                          >
+                            {comp.name} ×
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* User prompt inputs */}
+                <input
+                  type="text"
+                  className="content-item-editor__input"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Describe the scene/action..."
+                />
+                <input
+                  type="text"
+                  className="content-item-editor__input"
+                  value={aiNegativePrompt}
+                  onChange={(e) => setAiNegativePrompt(e.target.value)}
+                  placeholder="Negative prompt (optional)..."
+                />
+
+                {/* ImageGenerator component - two-stage preview/render */}
+                <div className="content-item-editor__image-generator">
+                  <ImageGenerator
+                    positivePrompt={combinedPrompts.positive}
+                    negativePrompt={combinedPrompts.negative}
+                    projectPath={projectPath}
+                    destFolder={`${projectPath}/Images`}
+                    destFilename={getDestFilename()}
+                    onImageSaved={handleImageSaved}
+                    saveToDisk={true}
+                    showComposeButton={true}
+                    appearance={characterConfig?.appearance}
+                    characterConfig={characterConfig}
+                    placeholder={aiPrompt.trim() ? 'Click to preview' : 'Enter a prompt above'}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Gallery */}
       <div className="content-item-editor__gallery-section">
@@ -599,6 +926,7 @@ function ChoiceEditor({
   isSticky,
   divert,
   availableKnots,
+  availableStitches = [],
   onChangeText,
   onChangeSticky,
   onChangeDivert,
@@ -608,6 +936,7 @@ function ChoiceEditor({
   isSticky: boolean;
   divert?: string;
   availableKnots: string[];
+  availableStitches?: string[];
   onChangeText: (text: string) => void;
   onChangeSticky: (isSticky: boolean) => void;
   onChangeDivert: (divert?: string) => void;
@@ -654,11 +983,24 @@ function ChoiceEditor({
         >
           <option value="">No divert</option>
           <option value="END">END</option>
-          {availableKnots.map((knot) => (
-            <option key={knot} value={knot}>
-              {knot}
-            </option>
-          ))}
+          {availableKnots.length > 0 && (
+            <optgroup label="Knots">
+              {availableKnots.map((knot) => (
+                <option key={knot} value={knot}>
+                  {knot}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {availableStitches.length > 0 && (
+            <optgroup label="Stitches (this knot)">
+              {availableStitches.map((stitch) => (
+                <option key={stitch} value={stitch}>
+                  {stitch}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
     </>
@@ -714,6 +1056,43 @@ function RawEditor({
         placeholder="Raw ink syntax..."
         style={{ fontFamily: 'monospace' }}
       />
+    </div>
+  );
+}
+
+function StitchEditor({
+  name,
+  onChange,
+  error,
+}: {
+  name: string;
+  onChange: (name: string) => void;
+  error?: string;
+}) {
+  // Sanitize name to valid ink identifier (alphanumeric + underscore)
+  const handleChange = (value: string) => {
+    // Convert to lowercase, replace spaces/invalid chars with underscore
+    const sanitized = value
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/^[0-9]/, '_$&'); // Can't start with number
+    onChange(sanitized);
+  };
+
+  return (
+    <div className="content-item-editor__field">
+      <label className="content-item-editor__label">Stitch Name</label>
+      <input
+        className={`content-item-editor__input ${error ? 'content-item-editor__input--error' : ''}`}
+        type="text"
+        value={name}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder="continue"
+      />
+      <div className="content-item-editor__hint">
+        Used for internal navigation. Common names: continue, response, next
+      </div>
+      {error && <div className="content-item-editor__error">{error}</div>}
     </div>
   );
 }

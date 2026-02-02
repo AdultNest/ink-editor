@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { KnotContentItem, ChoiceContentItem } from '../parser/inkTypes';
+import type { KnotContentItem, ChoiceContentItem, StitchContentItem } from '../parser/inkTypes';
 
 /**
  * Represents a position in the content tree.
@@ -33,6 +33,8 @@ export interface FlattenedItem {
 
 /**
  * Get the items array at a given parent level
+ * Stitches are just markers at root level (no nested content)
+ * Only choice nested content creates a new level
  */
 export function getItemsAtLevel(
   items: KnotContentItem[],
@@ -43,47 +45,52 @@ export function getItemsAtLevel(
   }
 
   // Find the parent choice
-  const findChoice = (items: KnotContentItem[]): ChoiceContentItem | null => {
+  const findParent = (items: KnotContentItem[]): KnotContentItem[] | null => {
     for (const item of items) {
       if (item.id === parentId && item.type === 'choice') {
-        return item;
+        return item.nestedContent || [];
       }
+      // Recurse into choices only
       if (item.type === 'choice' && item.nestedContent) {
-        const found = findChoice(item.nestedContent);
+        const found = findParent(item.nestedContent);
         if (found) return found;
       }
     }
     return null;
   };
 
-  const choice = findChoice(items);
-  return choice?.nestedContent || [];
+  return findParent(items) || [];
 }
 
 /**
  * Find an item by ID in the tree
+ * Stitches are just markers at root level
+ * Only choice nested content has a parent
  */
 export function findItemById(
   items: KnotContentItem[],
   id: string
 ): { item: KnotContentItem; parentId: string | null; index: number } | null {
-  // Check root level
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if (item.id === id) {
-      return { item, parentId: null, index: i };
-    }
-    // Check nested content
-    if (item.type === 'choice' && item.nestedContent) {
-      const nested = item.nestedContent;
-      for (let j = 0; j < nested.length; j++) {
-        if (nested[j].id === id) {
-          return { item: nested[j], parentId: item.id, index: j };
-        }
+  // Recursive search helper
+  const search = (
+    items: KnotContentItem[],
+    parentId: string | null
+  ): { item: KnotContentItem; parentId: string | null; index: number } | null => {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.id === id) {
+        return { item, parentId, index: i };
+      }
+      // Check nested content in choices only
+      if (item.type === 'choice' && item.nestedContent) {
+        const found = search(item.nestedContent, item.id);
+        if (found) return found;
       }
     }
-  }
-  return null;
+    return null;
+  };
+
+  return search(items, null);
 }
 
 /**
@@ -106,6 +113,8 @@ export function canHaveNestedContent(item: KnotContentItem): item is ChoiceConte
 
 /**
  * Flatten the tree for rendering with depth info
+ * Stitches are just markers at root level (no nested content)
+ * Only choice nested content is treated as nested (depth > 0)
  */
 export function flattenItems(items: KnotContentItem[]): FlattenedItem[] {
   const result: FlattenedItem[] = [];
@@ -125,7 +134,7 @@ export function flattenItems(items: KnotContentItem[]): FlattenedItem[] {
         isLastInParent: i === items.length - 1,
       });
 
-      // Recurse into nested content
+      // Recurse into nested content in choices only
       if (item.type === 'choice' && item.nestedContent && item.nestedContent.length > 0) {
         flatten(item.nestedContent, depth + 1, item.id);
       }

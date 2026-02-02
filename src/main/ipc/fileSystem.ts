@@ -219,4 +219,160 @@ export function registerFileSystemHandlers(): void {
     // showItemInFolder opens the folder containing the file and selects it
     shell.showItemInFolder(targetPath);
   });
+
+  // Handler for renaming a file or directory
+  ipcMain.handle('fs:rename', async (_event, oldPath: string, newPath: string): Promise<void> => {
+    if (!oldPath || typeof oldPath !== 'string') {
+      throw new Error('Invalid source path provided');
+    }
+    if (!newPath || typeof newPath !== 'string') {
+      throw new Error('Invalid destination path provided');
+    }
+
+    try {
+      // Check if destination already exists
+      try {
+        await fs.access(newPath);
+        throw new Error(`A file or folder already exists at: ${newPath}`);
+      } catch (accessError) {
+        // Destination doesn't exist, which is what we want
+        if ((accessError as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw accessError;
+        }
+      }
+
+      await fs.rename(oldPath, newPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to rename "${oldPath}" to "${newPath}": ${message}`);
+    }
+  });
+
+  // Handler for finding references to a file in the project
+  ipcMain.handle('fs:findReferences', async (
+    _event,
+    projectPath: string,
+    searchTerm: string,
+    fileExtensions?: string[]
+  ): Promise<FileReference[]> => {
+    if (!projectPath || typeof projectPath !== 'string') {
+      throw new Error('Invalid project path provided');
+    }
+    if (!searchTerm || typeof searchTerm !== 'string') {
+      throw new Error('Invalid search term provided');
+    }
+
+    const references: FileReference[] = [];
+    const extensions = fileExtensions || ['.json', '.ink', '.conf'];
+
+    // Recursively search for references
+    async function searchDirectory(dirPath: string): Promise<void> {
+      try {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const entryPath = path.join(dirPath, entry.name);
+
+          if (entry.isDirectory()) {
+            // Skip node_modules, .git, etc.
+            if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+              continue;
+            }
+            await searchDirectory(entryPath);
+          } else {
+            // Check if file has a matching extension
+            const ext = path.extname(entry.name).toLowerCase();
+            if (!extensions.includes(ext)) {
+              continue;
+            }
+
+            try {
+              const content = await fs.readFile(entryPath, 'utf-8');
+
+              // Search for the term in the file content
+              const lines = content.split('\n');
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                let index = line.indexOf(searchTerm);
+
+                while (index !== -1) {
+                  references.push({
+                    filePath: entryPath,
+                    lineNumber: i + 1,
+                    lineContent: line.trim(),
+                    matchStart: index,
+                    matchEnd: index + searchTerm.length,
+                  });
+                  // Find next occurrence in the same line
+                  index = line.indexOf(searchTerm, index + 1);
+                }
+              }
+            } catch {
+              // Skip files that can't be read
+            }
+          }
+        }
+      } catch {
+        // Skip directories that can't be read
+      }
+    }
+
+    await searchDirectory(projectPath);
+    return references;
+  });
+
+  // Handler for updating references in multiple files
+  ipcMain.handle('fs:updateReferences', async (
+    _event,
+    updates: ReferenceUpdate[]
+  ): Promise<{ success: boolean; errors: string[] }> => {
+    const errors: string[] = [];
+
+    // Group updates by file path
+    const updatesByFile = new Map<string, ReferenceUpdate[]>();
+    for (const update of updates) {
+      const existing = updatesByFile.get(update.filePath) || [];
+      existing.push(update);
+      updatesByFile.set(update.filePath, existing);
+    }
+
+    // Process each file
+    for (const [filePath, fileUpdates] of updatesByFile) {
+      try {
+        let content = await fs.readFile(filePath, 'utf-8');
+
+        // Replace all occurrences of oldText with newText
+        for (const update of fileUpdates) {
+          content = content.split(update.oldText).join(update.newText);
+        }
+
+        await fs.writeFile(filePath, content, 'utf-8');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`Failed to update "${filePath}": ${message}`);
+      }
+    }
+
+    return { success: errors.length === 0, errors };
+  });
+}
+
+/**
+ * Represents a reference found in a file
+ */
+export interface FileReference {
+  filePath: string;
+  lineNumber: number;
+  lineContent: string;
+  matchStart: number;
+  matchEnd: number;
+}
+
+/**
+ * Represents a reference update request
+ */
+export interface ReferenceUpdate {
+  filePath: string;
+  oldText: string;
+  newText: string;
 }

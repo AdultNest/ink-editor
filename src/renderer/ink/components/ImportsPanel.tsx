@@ -141,7 +141,7 @@ export function ImportsPanel({
         <div className="imports-panel-empty">
           No methods available.
           <div className="imports-panel-hint">
-            Add methods to <code>methods.conf.json</code> to enable import management.
+            Add methods to <code>methods.conf</code> to enable import management.
           </div>
         </div>
       </div>

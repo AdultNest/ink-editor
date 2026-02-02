@@ -41,6 +41,7 @@ const SPECIAL_TYPES: Array<{
   { type: 'video', label: 'NPC Video', icon: '🎬', description: 'Video sent by character' },
   { type: 'player-video', label: 'Player Video', icon: '📹', description: 'Video sent by player' },
   { type: 'choice', label: 'Choice', icon: '❓', description: 'Add player choice with optional divert' },
+  { type: 'stitch', label: 'Stitch', icon: '↓', description: 'Continue section after player choice' },
   { type: 'divert', label: 'Divert', icon: '➡️', description: 'Jump to another knot' },
   { type: 'fake-type', label: 'Typing Indicator', icon: '⌨️', description: 'Show typing animation' },
   { type: 'wait', label: 'Wait/Pause', icon: '⏸️', description: 'Pause for N seconds' },

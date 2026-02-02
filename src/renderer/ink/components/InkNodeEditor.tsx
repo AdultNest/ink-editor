@@ -307,7 +307,13 @@ function InkNodeEditorInner({
         if (isConnected) {
           return {
             ...edge,
-            style: { ...edge.style, stroke: HIGHLIGHT_COLOR, strokeWidth: HIGHLIGHT_STROKE_WIDTH },
+            style: {
+              ...edge.style,
+              stroke: HIGHLIGHT_COLOR,
+              strokeWidth: HIGHLIGHT_STROKE_WIDTH,
+              strokeDasharray: '12 6',
+            },
+            className: 'ink-edge-highlighted',
             labelStyle: { ...edge.labelStyle, fill: HIGHLIGHT_COLOR, fontSize: 12, fontWeight: 600 },
             zIndex: 1000,
           };

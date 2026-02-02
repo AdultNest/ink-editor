@@ -1,0 +1,565 @@
+/**
+ * ConversationPanel Styles
+ *
+ * Dark theme styling for the AI conversation panel.
+ */
+
+/* Overlay */
+.conversation-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1000;
+}
+
+/* Main panel */
+.conversation-panel {
+  width: 480px;
+  max-width: 90vw;
+  height: 100%;
+  background: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Header */
+.conversation-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+  background: #252525;
+}
+
+.conversation-panel-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.conversation-close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.conversation-close-btn:hover {
+  color: #fff;
+}
+
+/* Status indicator */
+.conversation-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #252525;
+  border-bottom: 1px solid #333;
+  font-size: 13px;
+}
+
+.conversation-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.conversation-status-idle .conversation-status-dot {
+  background: #666;
+}
+
+.conversation-status-thinking .conversation-status-dot,
+.conversation-status-executing .conversation-status-dot {
+  background: #f0ad4e;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.conversation-status-active .conversation-status-dot {
+  background: #5cb85c;
+}
+
+.conversation-status-completed .conversation-status-dot {
+  background: #5cb85c;
+}
+
+.conversation-status-error .conversation-status-dot {
+  background: #d9534f;
+}
+
+.conversation-status-warning .conversation-status-dot {
+  background: #f0ad4e;
+}
+
+.conversation-status-cancelled .conversation-status-dot {
+  background: #888;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.conversation-status-text {
+  color: #ccc;
+}
+
+.conversation-status-iteration {
+  margin-left: auto;
+  color: #888;
+  font-size: 12px;
+}
+
+/* Content area */
+.conversation-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Setup section */
+.conversation-setup {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.conversation-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conversation-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #bbb;
+}
+
+.conversation-field textarea,
+.conversation-field input[type="text"] {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 12px;
+  color: #e0e0e0;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.conversation-field textarea:focus,
+.conversation-field input:focus {
+  outline: none;
+  border-color: #5b9bd5;
+}
+
+.conversation-field input[type="range"] {
+  width: 100%;
+  accent-color: #5b9bd5;
+}
+
+.conversation-field-hint {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Examples */
+.conversation-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #888;
+}
+
+.conversation-example-btn {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #aaa;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.conversation-example-btn:hover {
+  background: #444;
+  color: #ddd;
+  border-color: #555;
+}
+
+/* Start button */
+.conversation-start-btn {
+  background: #5b9bd5;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.conversation-start-btn:hover:not(:disabled) {
+  background: #4a8bc4;
+}
+
+.conversation-start-btn:disabled {
+  background: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+
+/* Warning message */
+.conversation-warning {
+  background: #3d2d00;
+  border: 1px solid #665200;
+  border-radius: 6px;
+  padding: 12px;
+  color: #ffcc00;
+  font-size: 13px;
+}
+
+/* Messages area */
+.conversation-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Message */
+.conversation-message {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #2a2a2a;
+}
+
+.conversation-message-user {
+  background: #1a3a5c;
+  margin-left: 20px;
+}
+
+.conversation-message-assistant {
+  background: #2a2a2a;
+  margin-right: 20px;
+}
+
+.conversation-message-system,
+.conversation-message-tool {
+  background: #252525;
+  border: 1px solid #333;
+  font-size: 13px;
+}
+
+.conversation-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.conversation-message-role {
+  font-weight: 600;
+  color: #5b9bd5;
+}
+
+.conversation-message-user .conversation-message-role {
+  color: #7cb3f0;
+}
+
+.conversation-message-time {
+  color: #666;
+  margin-left: auto;
+}
+
+.conversation-message-hint {
+  font-size: 12px;
+  cursor: help;
+  opacity: 0.6;
+}
+
+.conversation-message--has-full {
+  cursor: help;
+}
+
+.conversation-message-content {
+  color: #ddd;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Tool calls */
+.conversation-tool-calls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.conversation-tool-call {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.conversation-tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.conversation-tool-call-header:hover {
+  background: #252525;
+}
+
+.conversation-tool-icon {
+  font-size: 14px;
+}
+
+.conversation-tool-name {
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #9cdcfe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-tool-toggle {
+  color: #666;
+  font-size: 10px;
+}
+
+.conversation-tool-call-preview {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.conversation-tool-call-result {
+  padding: 12px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+}
+
+.conversation-tool-call-result pre {
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #b5cea8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Stats bar */
+.conversation-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #252525;
+  border-top: 1px solid #333;
+  font-size: 12px;
+}
+
+.conversation-stat {
+  color: #888;
+}
+
+.conversation-stat strong {
+  color: #aaa;
+}
+
+/* Completion summary */
+.conversation-completion {
+  padding: 12px 16px;
+  background: #1a3d1a;
+  border-top: 1px solid #2d5a2d;
+  color: #7fdf7f;
+  font-size: 13px;
+}
+
+/* Error display */
+.conversation-error {
+  padding: 12px 16px;
+  background: #3d1a1a;
+  border-top: 1px solid #5a2d2d;
+  color: #ff7f7f;
+  font-size: 13px;
+}
+
+/* User input area */
+.conversation-input-area {
+  padding: 12px 16px;
+  border-top: 1px solid #333;
+  background: #252525;
+}
+
+.conversation-input-area textarea {
+  width: 100%;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px;
+  color: #e0e0e0;
+  font-size: 14px;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.conversation-input-area textarea:focus {
+  outline: none;
+  border-color: #5b9bd5;
+}
+
+.conversation-input-area textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.conversation-input-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.conversation-input-actions button {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 12px;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.conversation-input-actions button:hover:not(:disabled) {
+  background: #444;
+  border-color: #555;
+}
+
+.conversation-input-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Action buttons */
+.conversation-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #333;
+  background: #252525;
+}
+
+.conversation-cancel-btn {
+  background: #5a3030;
+  border: 1px solid #7a4040;
+  border-radius: 6px;
+  padding: 10px 16px;
+  color: #ff9999;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.conversation-cancel-btn:hover:not(:disabled) {
+  background: #6a4040;
+}
+
+.conversation-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.conversation-new-btn {
+  background: #5b9bd5;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex: 1;
+}
+
+.conversation-new-btn:hover {
+  background: #4a8bc4;
+}
+
+/* Scrollbar styling */
+.conversation-messages::-webkit-scrollbar,
+.conversation-tool-call-result pre::-webkit-scrollbar {
+  width: 8px;
+}
+
+.conversation-messages::-webkit-scrollbar-track,
+.conversation-tool-call-result pre::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.conversation-messages::-webkit-scrollbar-thumb,
+.conversation-tool-call-result pre::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.conversation-messages::-webkit-scrollbar-thumb:hover,
+.conversation-tool-call-result pre::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

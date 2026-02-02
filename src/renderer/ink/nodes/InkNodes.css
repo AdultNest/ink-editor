@@ -126,6 +126,31 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* Label text (main choice label) */
+.ink-knot-handle-label-text {
+  flex-shrink: 0;
+}
+
+/* Subtext (output text, shown smaller and italic when label is present) */
+.ink-knot-handle-label-subtext {
+  font-size: 9px;
+  font-style: italic;
+  color: #808080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Labeled rows: keep on same row with label bold */
+.ink-knot-handle-row-labeled .ink-knot-handle-label-text {
+  font-weight: 600;
+  color: #dcdcaa;
 }
 
 .ink-handle-divert {

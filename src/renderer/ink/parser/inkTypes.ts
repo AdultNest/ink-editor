@@ -16,6 +16,8 @@ export interface InkChoice {
   isSticky: boolean;
   /** The full raw line content */
   rawContent: string;
+  /** Optional explicit label (from <label> syntax) - displayed as main choice text */
+  label?: string;
 }
 
 /**
@@ -30,6 +32,8 @@ export interface InkDivert {
   context: 'choice' | 'standalone' | 'inline' | 'conditional';
   /** The choice text if this divert is part of a choice */
   choiceText?: string;
+  /** Optional explicit label (from <label> syntax) for choice diverts */
+  choiceLabel?: string;
   /** The flag name if this is a conditional divert (GetStoryFlag check) */
   conditionFlag?: string;
   /** Whether this is an else branch in a conditional block */
@@ -376,6 +380,8 @@ export interface ChoiceContentItem extends KnotContentItemBase {
   divert?: string;
   /** Content that appears after choosing (before divert) */
   nestedContent?: KnotContentItem[];
+  /** Optional explicit label (from <label> syntax) - displayed as main choice text */
+  label?: string;
 }
 
 /**
@@ -420,6 +426,18 @@ export interface RawContentItem extends KnotContentItemBase {
 }
 
 /**
+ * Stitch: = stitch_name (sub-section within a knot)
+ * Used to continue after player choices with content
+ */
+export interface StitchContentItem extends KnotContentItemBase {
+  type: 'stitch';
+  /** The stitch name (only [a-zA-Z_0-9] allowed) */
+  name: string;
+  /** Content within this stitch */
+  content: KnotContentItem[];
+}
+
+/**
  * Union type for all knot content items
  */
 export type KnotContentItem =
@@ -436,7 +454,8 @@ export type KnotContentItem =
   | ChoiceContentItem
   | DivertContentItem
   | ConditionalContentItem
-  | RawContentItem;
+  | RawContentItem
+  | StitchContentItem;
 
 /**
  * Helper type for content item type strings

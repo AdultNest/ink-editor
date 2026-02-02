@@ -4,12 +4,13 @@
  * Special form-based editor for mod.json files.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './JsonEditor.css';
 
 export interface ModJsonEditorProps {
   filePath: string;
   fileName: string;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 interface ModJson {
@@ -30,7 +31,7 @@ const DEFAULT_MOD: ModJson = {
   headerImage: '',
 };
 
-export function ModJsonEditor({ filePath, fileName }: ModJsonEditorProps) {
+export function ModJsonEditor({ filePath, fileName, onDirtyChange }: ModJsonEditorProps) {
   const [data, setData] = useState<ModJson>(DEFAULT_MOD);
   const [originalData, setOriginalData] = useState<ModJson>(DEFAULT_MOD);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +39,17 @@ export function ModJsonEditor({ filePath, fileName }: ModJsonEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
 
   const isDirty = JSON.stringify(data) !== JSON.stringify(originalData);
+
+  // Notify parent of dirty state changes (use ref to avoid infinite loops)
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  const prevDirtyRef = useRef(isDirty);
+  useEffect(() => {
+    if (prevDirtyRef.current !== isDirty) {
+      prevDirtyRef.current = isDirty;
+      onDirtyChangeRef.current?.(isDirty);
+    }
+  }, [isDirty]);
 
   // Load file
   useEffect(() => {

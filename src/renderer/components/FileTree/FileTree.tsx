@@ -10,7 +10,7 @@
  */
 
 import { Tree, TreeApi, NodeApi } from 'react-arborist';
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import FileTreeNode from './FileTreeNode';
 import type { FileTreeNode as FileTreeNodeType } from './types';
 import './FileTree.css';
@@ -29,6 +29,8 @@ interface ContextMenuState {
   canDelete: boolean;
   /** The path to delete (when right-clicking on a node) */
   deletePath?: string;
+  /** The name of the file/folder (for rename) */
+  nodeName?: string;
 }
 
 /**
@@ -65,6 +67,8 @@ export interface FileTreeProps {
   onImportFiles?: (targetPath: string) => Promise<void>;
   /** Callback when a file/folder is deleted */
   onDelete?: (path: string) => void | Promise<void>;
+  /** Callback when a file/folder rename is requested */
+  onRename?: (path: string, name: string) => void;
   /** Callback to show file/folder in system file explorer */
   onShowInExplorer?: (path: string) => void | Promise<void>;
   /** Width of the tree (for virtualization) */
@@ -79,6 +83,8 @@ export interface FileTreeProps {
   isLoading?: boolean;
   /** Message to show when the tree is empty */
   emptyMessage?: string;
+  /** Set of folder paths that should be collapsed (folders not in this set are expanded by default) */
+  collapsedFolders?: Set<string>;
 }
 
 /**
@@ -97,6 +103,7 @@ function FileTree({
   onCreateFolder,
   onImportFiles,
   onDelete,
+  onRename,
   onShowInExplorer,
   width = 300,
   height = 600,
@@ -104,6 +111,7 @@ function FileTree({
   indent = 16,
   isLoading = false,
   emptyMessage = 'No files to display',
+  collapsedFolders,
 }: FileTreeProps) {
   // Ref to access the tree API for programmatic control
   const treeRef = useRef<TreeApi<FileTreeNodeType> | null>(null);
@@ -114,6 +122,43 @@ function FileTree({
 
   // Input field state for creating new files/folders
   const [inputState, setInputState] = useState<InputState | null>(null);
+
+  // Track the last applied collapsed folders to avoid re-applying on every render
+  const appliedCollapsedRef = useRef<Set<string> | null>(null);
+
+  // Build initial open state from collapsedFolders
+  // Folders not in collapsedFolders should be open
+  const initialOpenState = useMemo(() => {
+    if (!collapsedFolders || collapsedFolders.size === 0) {
+      return undefined; // Use openByDefault
+    }
+    // Build a map of folder IDs to their open state
+    const openState: Record<string, boolean> = {};
+    collapsedFolders.forEach(folderId => {
+      openState[folderId] = false; // Explicitly closed
+    });
+    return openState;
+  }, [collapsedFolders]);
+
+  // Apply collapsed state when collapsedFolders changes
+  // This handles cases where collapsedFolders is loaded from config after tree mounts
+  useEffect(() => {
+    if (!treeRef.current || !collapsedFolders) return;
+
+    // Check if collapsedFolders has changed
+    const currentCollapsed = appliedCollapsedRef.current;
+    if (currentCollapsed === collapsedFolders) return;
+
+    // Apply the collapsed state
+    collapsedFolders.forEach(folderId => {
+      const node = treeRef.current?.get(folderId);
+      if (node && node.isOpen) {
+        node.close();
+      }
+    });
+
+    appliedCollapsedRef.current = collapsedFolders;
+  }, [collapsedFolders, data]);
 
   /**
    * Handle node selection (single click)
@@ -208,6 +253,7 @@ function FileTree({
         isDirectory: isDir,
         canDelete: true, // Can delete specific nodes
         deletePath: node.data.path, // The actual path to delete
+        nodeName: node.name, // The name of the file/folder
       });
     },
     []
@@ -267,6 +313,16 @@ function FileTree({
     }
     closeContextMenu();
   }, [contextMenu, onDelete, closeContextMenu]);
+
+  /**
+   * Handle Rename action
+   */
+  const handleRename = useCallback(() => {
+    if (contextMenu?.canDelete && contextMenu.deletePath && contextMenu.nodeName && onRename) {
+      onRename(contextMenu.deletePath, contextMenu.nodeName);
+    }
+    closeContextMenu();
+  }, [contextMenu, onRename, closeContextMenu]);
 
   /**
    * Handle Show in Explorer action
@@ -429,7 +485,8 @@ function FileTree({
         onSelect={handleSelect}
         onActivate={handleActivate}
         onToggle={handleToggle}
-        openByDefault={false}
+        openByDefault={true}
+        initialOpenState={initialOpenState}
         disableDrag
         disableDrop
       >
@@ -480,6 +537,12 @@ function FileTree({
             {contextMenu.canDelete && (
               <>
                 <div className="file-tree-context-menu__divider" />
+                <button
+                  className="file-tree-context-menu__item"
+                  onClick={handleRename}
+                >
+                  ✏️ Rename
+                </button>
                 <button
                   className="file-tree-context-menu__item file-tree-context-menu__item--danger"
                   onClick={handleDelete}

@@ -1,0 +1,217 @@
+/**
+ * ImagePreviewGenerator Styles
+ */
+
+.image-preview-generator {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Display Area */
+.image-preview-generator__display {
+  position: relative;
+  width: 256px;
+  height: 256px;
+  background-color: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image-preview-generator__display.clickable {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.image-preview-generator__display.clickable:hover {
+  border-color: #0e639c;
+}
+
+.image-preview-generator__placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #808080;
+  font-size: 12px;
+  text-align: center;
+  padding: 20px;
+  gap: 12px;
+}
+
+.image-preview-generator__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Spinner */
+.image-preview-generator__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #3c3c3c;
+  border-top-color: #0e639c;
+  border-radius: 50%;
+  animation: ipg-spin 1s linear infinite;
+}
+
+@keyframes ipg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Overlay */
+.image-preview-generator__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.image-preview-generator__overlay > * {
+  pointer-events: auto;
+}
+
+/* Top row with seed tag and clear button */
+.image-preview-generator__overlay-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px;
+  gap: 8px;
+}
+
+/* Seed Tag Button */
+.image-preview-generator__seed-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: rgba(30, 30, 30, 0.85);
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  color: #808080;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.image-preview-generator__seed-tag:hover {
+  background-color: rgba(14, 99, 156, 0.9);
+  border-color: #0e639c;
+  color: #ffffff;
+}
+
+.image-preview-generator__refresh-icon {
+  font-size: 12px;
+  transition: transform 0.3s;
+}
+
+.image-preview-generator__seed-tag:hover .image-preview-generator__refresh-icon {
+  transform: rotate(180deg);
+}
+
+.image-preview-generator__seed-value {
+  opacity: 0.9;
+}
+
+/* Status Badges */
+.image-preview-generator__badge {
+  padding: 4px 8px;
+  background-color: rgba(78, 78, 78, 0.9);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #ffd700;
+}
+
+.image-preview-generator__badge--complete {
+  background-color: rgba(14, 99, 156, 0.9);
+  color: #ffffff;
+}
+
+.image-preview-generator__badge--rendered {
+  background-color: rgba(78, 140, 78, 0.9);
+  color: #ffffff;
+}
+
+/* Clear Button (Red X) */
+.image-preview-generator__clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: auto;
+  background-color: rgba(30, 30, 30, 0.85);
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #808080;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.image-preview-generator__clear-btn:hover {
+  background-color: rgba(180, 60, 60, 0.9);
+  border-color: #b43c3c;
+  color: #ffffff;
+}
+
+/* Rendering Overlay (shown during render with existing preview) */
+.image-preview-generator__rendering-overlay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* Action Hint (center of image on hover) */
+.image-preview-generator__action-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.image-preview-generator__action-hint span {
+  padding: 8px 16px;
+  background-color: rgba(14, 99, 156, 0.9);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.image-preview-generator__display.clickable:hover .image-preview-generator__action-hint {
+  opacity: 1;
+}
+
+/* Error */
+.image-preview-generator__error {
+  padding: 8px 12px;
+  background-color: #5a1d1d;
+  border-radius: 4px;
+  color: #f48771;
+  font-size: 12px;
+}

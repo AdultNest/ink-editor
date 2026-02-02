@@ -292,8 +292,9 @@ function generateGraph(
     const position = knotPositions.get(knot.name) || { x: START_X + LAYER_WIDTH, y: START_Y };
 
     // Separate conditional diverts from regular diverts
-    const regularDiverts = knot.diverts.filter(d => d.context !== 'conditional');
-    const conditionalDiverts = knot.diverts.filter(d => d.context === 'conditional');
+    // Also filter out stitch diverts (those with a dot, e.g., "knot.stitch") as they're internal navigation
+    const regularDiverts = knot.diverts.filter(d => d.context !== 'conditional' && !d.target.includes('.'));
+    const conditionalDiverts = knot.diverts.filter(d => d.context === 'conditional' && !d.target.includes('.'));
 
     nodes.push({
       id: knot.name,
@@ -341,8 +342,9 @@ function generateGraph(
       targetHandle: 'input',
       animated: false,
       style: isHighlighted
-        ? { stroke: HIGHLIGHT_COLOR, strokeWidth: HIGHLIGHT_STROKE_WIDTH }
+        ? { stroke: HIGHLIGHT_COLOR, strokeWidth: HIGHLIGHT_STROKE_WIDTH, strokeDasharray: '12 6' }
         : { stroke: '#4caf50', strokeWidth: 3 },
+      className: isHighlighted ? 'ink-edge-highlighted' : undefined,
       zIndex: isHighlighted ? 1000 : 0,
     });
   }
@@ -351,6 +353,11 @@ function generateGraph(
   // Each divert gets its own edge (no deduplication) with a unique handle ID
   for (const knot of knots) {
     for (const divert of knot.diverts) {
+      // Skip stitch diverts (contain a dot, e.g., "knot.stitch") - these are internal navigation
+      if (divert.target.includes('.')) {
+        continue;
+      }
+
       const targetId = divert.target === 'END' ? '__end__' : divert.target;
 
       // Unique handle ID format: "line:{lineNumber}:{target}"
@@ -372,8 +379,10 @@ function generateGraph(
 
       // Determine edge style based on selection, target, and context
       let edgeStyle: { stroke?: string; strokeWidth: number; strokeDasharray?: string };
+      let edgeClassName: string | undefined;
       if (isHighlighted) {
-        edgeStyle = { stroke: HIGHLIGHT_COLOR, strokeWidth: HIGHLIGHT_STROKE_WIDTH };
+        edgeStyle = { stroke: HIGHLIGHT_COLOR, strokeWidth: HIGHLIGHT_STROKE_WIDTH, strokeDasharray: '12 6' };
+        edgeClassName = 'ink-edge-highlighted';
       } else if (divert.target === 'END') {
         edgeStyle = { stroke: '#f44336', strokeWidth: 3 };
       } else if (isConditional) {
@@ -399,6 +408,7 @@ function generateGraph(
           labelBgStyle: { fill: '#1e1e1e', fillOpacity: 0.8 },
           labelBgPadding: [4, 2] as [number, number],
           style: edgeStyle,
+          className: edgeClassName,
           markerEnd: { type: 'arrowclosed' as const },
           zIndex: isHighlighted ? 1000 : 0,
         });

@@ -14,7 +14,10 @@ import {
 import { ContentView, type ContentViewHandle } from './components/ContentView';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { SaveChangesDialog } from './components/SaveChangesDialog';
+import { SettingsDialog } from './components/SettingsDialog';
+import { RenameDialog } from './components/RenameDialog';
 import { type TabData, type TabId } from './components/TabBar/types';
+import type { AppSettings, ReferenceUpdate } from '../preload';
 
 /**
  * Editor config structure for persisting UI state
@@ -22,6 +25,8 @@ import { type TabData, type TabId } from './components/TabBar/types';
 interface EditorConfig {
   openTabs: string[];
   activeTab: string | null;
+  /** Folders that are collapsed (relative paths). Folders not in this list are expanded by default. */
+  collapsedFolders?: string[];
 }
 
 function App() {
@@ -31,14 +36,18 @@ function App() {
     treeData,
     isLoading,
     error,
+    collapsedFolders,
     openFolder: openFolderBase,
+    loadFolder,
     handleToggle,
     setSelectedNode,
     createFile,
     createFolder,
     importFiles,
     deleteItem,
+    renameItem,
     createProject: createProjectBase,
+    setCollapsedFolders,
   } = useFileTree();
 
   // Tab state management
@@ -74,6 +83,17 @@ function App() {
     path: string;
     name: string;
   }>({ isOpen: false, path: '', name: '' });
+
+  // Settings dialog state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [appSettings, setAppSettings] = useState<AppSettings>({});
+
+  // Rename dialog state
+  const [renameDialog, setRenameDialog] = useState<{
+    isOpen: boolean;
+    filePath: string;
+    fileName: string;
+  }>({ isOpen: false, filePath: '', fileName: '' });
 
   /**
    * Handle file tree node activation (double-click on file)
@@ -242,6 +262,56 @@ function App() {
   }, []);
 
   /**
+   * Handle rename request - shows the rename dialog
+   */
+  const handleRenameRequest = useCallback((path: string, name: string) => {
+    setRenameDialog({ isOpen: true, filePath: path, fileName: name });
+  }, []);
+
+  /**
+   * Handle rename confirmation - renames the file and updates references
+   */
+  const handleRenameConfirm = useCallback(async (newName: string, referencesToUpdate: ReferenceUpdate[]) => {
+    const { filePath, fileName } = renameDialog;
+    if (!filePath) return;
+
+    // Build new path
+    const separator = filePath.includes('\\') ? '\\' : '/';
+    const parentPath = filePath.substring(0, filePath.lastIndexOf(separator));
+    const newPath = `${parentPath}${separator}${newName}`;
+
+    // Update references first (before renaming the file)
+    if (referencesToUpdate.length > 0) {
+      const result = await window.electronAPI.updateReferences(referencesToUpdate);
+      if (!result.success) {
+        console.error('Failed to update some references:', result.errors);
+      }
+    }
+
+    // Rename the file
+    await renameItem(filePath, newPath);
+
+    // Update any open tabs that reference this file
+    for (const tab of tabs) {
+      if (tab.filePath === filePath) {
+        // Close the old tab and open the new one
+        closeTab(tab.id);
+        openTab(newPath);
+      }
+    }
+
+    // Close the dialog
+    setRenameDialog({ isOpen: false, filePath: '', fileName: '' });
+  }, [renameDialog, renameItem, tabs, closeTab, openTab]);
+
+  /**
+   * Handle rename cancel
+   */
+  const handleRenameCancel = useCallback(() => {
+    setRenameDialog({ isOpen: false, filePath: '', fileName: '' });
+  }, []);
+
+  /**
    * Get the .editorconfig path for the current project
    */
   const getEditorConfigPath = useCallback((projectPath: string) => {
@@ -292,6 +362,7 @@ function App() {
     const config: EditorConfig = {
       openTabs: tabs.map(tab => toRelativePath(tab.filePath, rootPath)),
       activeTab: activeTab ? toRelativePath(activeTab.filePath, rootPath) : null,
+      collapsedFolders: Array.from(collapsedFolders).map(folder => toRelativePath(folder, rootPath)),
     };
 
     try {
@@ -300,7 +371,7 @@ function App() {
     } catch {
       // Silently ignore errors saving config
     }
-  }, [rootPath, tabs, activeTab, getEditorConfigPath, toRelativePath]);
+  }, [rootPath, tabs, activeTab, collapsedFolders, getEditorConfigPath, toRelativePath]);
 
   /**
    * Load editor config from .editorconfig file
@@ -311,12 +382,24 @@ function App() {
       const configPath = getEditorConfigPath(projectPath);
       const exists = await window.electronAPI.fileExists(configPath);
       if (!exists) {
+        // No config file - reset collapsed folders to empty (all expanded by default)
+        setCollapsedFolders(new Set());
         isLoadingConfigRef.current = false;
         return;
       }
 
       const content = await window.electronAPI.readFile(configPath);
       const config: EditorConfig = JSON.parse(content);
+
+      // Load collapsed folders (convert relative to absolute paths)
+      if (config.collapsedFolders && config.collapsedFolders.length > 0) {
+        const absoluteCollapsed = new Set(
+          config.collapsedFolders.map(folder => toAbsolutePath(folder, projectPath))
+        );
+        setCollapsedFolders(absoluteCollapsed);
+      } else {
+        setCollapsedFolders(new Set());
+      }
 
       // Open tabs from config (convert relative to absolute paths)
       for (const relativePath of config.openTabs) {
@@ -344,7 +427,29 @@ function App() {
     } finally {
       isLoadingConfigRef.current = false;
     }
-  }, [getEditorConfigPath, openTab, selectTab, tabs, toAbsolutePath]);
+  }, [getEditorConfigPath, openTab, selectTab, tabs, toAbsolutePath, setCollapsedFolders]);
+
+  /**
+   * Open a specific folder path directly (used for recent projects)
+   */
+  const openFolderPath = useCallback(async (folderPath: string) => {
+    // Save config for current project before switching
+    if (rootPath) {
+      await saveEditorConfig();
+    }
+
+    // Close all tabs when changing projects
+    closeAllTabs();
+
+    // Open the folder directly using loadFolder
+    await loadFolder(folderPath);
+
+    // Add to recent projects
+    await window.electronAPI.addRecentProject(folderPath);
+
+    // Load config for new project
+    await loadEditorConfig(folderPath);
+  }, [rootPath, saveEditorConfig, closeAllTabs, loadFolder, loadEditorConfig]);
 
   /**
    * Wrapper for openFolder that closes tabs and saves/loads config
@@ -361,8 +466,9 @@ function App() {
     // Open the new folder
     const newPath = await openFolderBase();
 
-    // Load config for new project
+    // Load config for new project and add to recent
     if (newPath) {
+      await window.electronAPI.addRecentProject(newPath);
       await loadEditorConfig(newPath);
     }
 
@@ -384,8 +490,9 @@ function App() {
     // Create the new project
     const newPath = await createProjectBase();
 
-    // Load config for new project (will be empty for new projects)
+    // Load config for new project (will be empty for new projects) and add to recent
     if (newPath) {
+      await window.electronAPI.addRecentProject(newPath);
       await loadEditorConfig(newPath);
     }
 
@@ -419,6 +526,81 @@ function App() {
     }
   }, [rootPath, tabs.length, loadEditorConfig]);
 
+  /**
+   * Load application settings on mount
+   */
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await window.electronAPI.getSettings();
+        setAppSettings(settings);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  /**
+   * Listen for menu events from Electron
+   */
+  useEffect(() => {
+    // Handle File > Open Folder menu action
+    const unsubscribeOpenFolder = window.electronAPI.onMenuOpenFolder(() => {
+      openFolder();
+    });
+
+    // Handle File > Save menu action
+    const unsubscribeSave = window.electronAPI.onMenuSave(() => {
+      if (contentViewRef.current && activeTab?.isDirty) {
+        contentViewRef.current.save();
+      }
+    });
+
+    // Handle File > Recent Projects > [project] menu action
+    const unsubscribeOpenRecent = window.electronAPI.onMenuOpenRecentProject((projectPath: string) => {
+      openFolderPath(projectPath);
+    });
+
+    // Handle File > Recent Projects > Clear menu action
+    const unsubscribeClearRecent = window.electronAPI.onMenuClearRecentProjects(async () => {
+      await window.electronAPI.clearRecentProjects();
+    });
+
+    return () => {
+      unsubscribeOpenFolder();
+      unsubscribeSave();
+      unsubscribeOpenRecent();
+      unsubscribeClearRecent();
+    };
+  }, [openFolder, openFolderPath, activeTab?.isDirty]);
+
+  /**
+   * Handle settings change - saves to disk
+   */
+  const handleSettingsChange = useCallback(async (newSettings: AppSettings) => {
+    setAppSettings(newSettings);
+    try {
+      await window.electronAPI.updateSettings(newSettings);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  }, []);
+
+  /**
+   * Open settings dialog
+   */
+  const handleOpenSettings = useCallback(() => {
+    setIsSettingsOpen(true);
+  }, []);
+
+  /**
+   * Close settings dialog
+   */
+  const handleCloseSettings = useCallback(() => {
+    setIsSettingsOpen(false);
+  }, []);
+
   return (
     <Layout
       sidebar={
@@ -429,11 +611,20 @@ function App() {
               <button
                 type="button"
                 className="sidebar-header-button"
+                onClick={handleOpenSettings}
+                title="AI Settings"
+                aria-label="AI Settings"
+              >
+                <span aria-hidden="true">&#9881;</span>
+              </button>
+              <button
+                type="button"
+                className="sidebar-header-button"
                 onClick={createProject}
                 title="New Project"
                 aria-label="New Project"
               >
-                <span aria-hidden="true">✨</span>
+                <span aria-hidden="true">&#10024;</span>
               </button>
               <OpenFolderButton onClick={openFolder} />
             </>
@@ -467,9 +658,11 @@ function App() {
               onCreateFolder={createFolder}
               onImportFiles={importFiles}
               onDelete={handleDeleteRequest}
+              onRename={handleRenameRequest}
               onShowInExplorer={handleShowInExplorer}
               height={window.innerHeight - 100}
               emptyMessage="Empty folder"
+              collapsedFolders={collapsedFolders}
             />
           )}
         </Sidebar>
@@ -493,6 +686,7 @@ function App() {
         ref={contentViewRef}
         activeTab={activeTab}
         onDirtyChange={handleDirtyChange}
+        appSettings={appSettings}
       />
 
       {/* Delete confirmation dialog */}
@@ -515,6 +709,24 @@ function App() {
         onSave={handleSaveAndClose}
         onDontSave={handleDontSave}
         onCancel={handleCancelClose}
+      />
+
+      {/* Settings dialog */}
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        settings={appSettings}
+        onSettingsChange={handleSettingsChange}
+        onClose={handleCloseSettings}
+      />
+
+      {/* Rename dialog */}
+      <RenameDialog
+        isOpen={renameDialog.isOpen}
+        filePath={renameDialog.filePath}
+        fileName={renameDialog.fileName}
+        projectPath={rootPath ?? ''}
+        onRename={handleRenameConfirm}
+        onCancel={handleRenameCancel}
       />
     </Layout>
   );

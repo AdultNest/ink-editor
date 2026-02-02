@@ -18,6 +18,8 @@ import { ContentItemEditor } from './ContentItemEditor';
 import { MessageComposer } from './MessageComposer';
 import { stripPositionComment } from '../parser/inkGenerator';
 
+import type { CharacterAIConfig } from '../ai/characterConfig';
+
 import './KnotVisualEditor.css';
 
 export interface KnotVisualEditorProps {
@@ -31,6 +33,12 @@ export interface KnotVisualEditorProps {
   availableKnots?: string[];
   /** Available flag names for autocomplete */
   availableFlags?: string[];
+  /** App settings for AI features */
+  appSettings?: import('../../../preload').AppSettings;
+  /** Character AI configuration for NPC images */
+  characterConfig?: CharacterAIConfig | null;
+  /** Main character AI configuration for player images */
+  mainCharacterConfig?: CharacterAIConfig | null;
 }
 
 // Types that need configuration after being added (should open editor immediately)
@@ -44,6 +52,7 @@ const TYPES_NEEDING_CONFIG: KnotContentItemType[] = [
   'transition',
   'flag-operation',
   'choice',
+  'stitch',
   'fake-type',
   'wait',
   'raw',
@@ -55,6 +64,9 @@ export function KnotVisualEditor({
   onUpdate,
   availableKnots = [],
   availableFlags = [],
+  appSettings,
+  characterConfig,
+  mainCharacterConfig,
 }: KnotVisualEditorProps) {
   // Strip position comment for editing
   const cleanContent = useMemo(
@@ -71,7 +83,7 @@ export function KnotVisualEditor({
     deleteItem,
     moveItemUp,
     moveItemDown,
-    serialize,
+    serializeWithErrors,
     validationErrors,
     isDirty,
     reset,
@@ -80,6 +92,9 @@ export function KnotVisualEditor({
     projectPath,
     knotPosition: knot.position,
   });
+
+  // Apply-time validation errors (e.g., dangling choices)
+  const [applyErrors, setApplyErrors] = useState<string[]>([]);
 
   // Caret navigation
   const {
@@ -95,6 +110,13 @@ export function KnotVisualEditor({
     isInsideChoice,
     flatItems,
   } = useCaretNavigation(items);
+
+  // Compute available stitches from current items
+  const availableStitches = useMemo(() => {
+    return items
+      .filter((item) => item.type === 'stitch')
+      .map((item) => `${knot.name}.${item.name}`);
+  }, [items, knot.name]);
 
   // Currently selected item for editing
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -167,18 +189,92 @@ export function KnotVisualEditor({
     [setCaretAfterItem]
   );
 
+  // Parse user input to detect ink syntax
+  // Returns the detected type and parsed data
+  const parseUserInput = useCallback((input: string): {
+    type: 'text' | 'choice' | 'divert';
+    data: {
+      content?: string;
+      text?: string;
+      isSticky?: boolean;
+      divert?: string;
+      label?: string;
+      target?: string;
+    };
+  } => {
+    const trimmed = input.trim();
+
+    // Check for choice syntax: * or + followed by text
+    // Pattern: (* or +) optional<label> optional[bracketed] or text optional-> divert
+    const choiceMatch = trimmed.match(
+      /^(\*|\+)\s*(?:<([^>]+)>\s*)?(?:\[([^\]]+)\]|(.+?))(?:\s*->\s*(\w+(?:\.\w+)?|END))?\s*$/
+    );
+    if (choiceMatch) {
+      const [, choiceType, label, bracketedText, unbracketedText, divertTarget] = choiceMatch;
+      const choiceText = bracketedText || unbracketedText || '';
+      return {
+        type: 'choice',
+        data: {
+          text: choiceText.trim(),
+          isSticky: choiceType === '+',
+          divert: divertTarget,
+          label: label?.trim(),
+        },
+      };
+    }
+
+    // Check for standalone divert syntax: -> target
+    const divertMatch = trimmed.match(/^\s*->\s*(\w+(?:\.\w+)?|END)\s*$/);
+    if (divertMatch) {
+      return {
+        type: 'divert',
+        data: {
+          target: divertMatch[1],
+        },
+      };
+    }
+
+    // Default: plain text message
+    return {
+      type: 'text',
+      data: {
+        content: input,
+      },
+    };
+  }, []);
+
   // Handle adding a text message (Enter key)
+  // Also parses ink syntax to detect choices and diverts
   const handleAddText = useCallback(
     (text: string) => {
       const position = getInsertPosition();
-      addTextMessageAt(text, position);
+      const parsed = parseUserInput(text);
+
+      if (parsed.type === 'choice') {
+        // Add as choice
+        const newId = addItemAt('choice', position);
+        updateItem(newId, {
+          text: parsed.data.text,
+          isSticky: parsed.data.isSticky,
+          divert: parsed.data.divert,
+          label: parsed.data.label,
+        });
+      } else if (parsed.type === 'divert') {
+        // Add as divert
+        const newId = addItemAt('divert', position);
+        updateItem(newId, { target: parsed.data.target });
+      } else {
+        // Add as plain text
+        addTextMessageAt(parsed.data.content || '', position);
+      }
+
       // Move caret after new item
       setCaret((prev) => ({
         ...prev,
         afterIndex: prev.afterIndex + 1,
       }));
     },
-    [addTextMessageAt, getInsertPosition, setCaret]
+    [parseUserInput, addItemAt, updateItem, addTextMessageAt, getInsertPosition, setCaret]
   );
 
   // Handle adding a choice (Alt+Enter key)
@@ -257,9 +353,14 @@ export function KnotVisualEditor({
 
   // Handle apply changes
   const handleApply = useCallback(() => {
-    const newContent = serialize();
-    onUpdate(newContent);
-  }, [serialize, onUpdate]);
+    const { content, errors } = serializeWithErrors();
+    if (errors.length > 0) {
+      setApplyErrors(errors);
+      return;
+    }
+    setApplyErrors([]);
+    onUpdate(content);
+  }, [serializeWithErrors, onUpdate]);
 
   // Handle cancel/reset
   const handleCancel = useCallback(() => {
@@ -298,6 +399,7 @@ export function KnotVisualEditor({
       'transition': 'Transition',
       'flag-operation': 'Flag Operation',
       'choice': 'Choice',
+      'stitch': 'Stitch (Continue)',
       'divert': 'Divert',
       'conditional': 'Conditional',
       'raw': 'Raw Ink',
@@ -372,6 +474,41 @@ export function KnotVisualEditor({
               </button>
             </div>
 
+            {/* Character Info - show relevant character for the item type */}
+            {(selectedItem.type === 'image' || selectedItem.type === 'player-image') && (
+              <div className="knot-visual-editor__character-info">
+                {selectedItem.type === 'player-image' ? (
+                  mainCharacterConfig?.meta ? (
+                    <>
+                      <span className="knot-visual-editor__character-label">Player:</span>
+                      <span
+                        className="knot-visual-editor__character-name"
+                        style={{ color: mainCharacterConfig.meta.characterColorHex }}
+                      >
+                        {mainCharacterConfig.meta.contactName}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="knot-visual-editor__character-none">No main character set</span>
+                  )
+                ) : (
+                  characterConfig?.meta ? (
+                    <>
+                      <span className="knot-visual-editor__character-label">Contact:</span>
+                      <span
+                        className="knot-visual-editor__character-name"
+                        style={{ color: characterConfig.meta.characterColorHex }}
+                      >
+                        {characterConfig.meta.contactName}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="knot-visual-editor__character-none">No contact set</span>
+                  )
+                )}
+              </div>
+            )}
+
             <ContentItemEditor
               item={selectedItem}
               onChange={handleItemUpdate}
@@ -382,8 +519,15 @@ export function KnotVisualEditor({
               }
               projectPath={projectPath}
               availableKnots={availableKnots}
+              availableStitches={availableStitches}
               availableFlags={availableFlags}
               error={selectedItemError?.message}
+              appSettings={appSettings}
+              characterConfig={
+                selectedItem.type === 'player-image' || selectedItem.type === 'player-video'
+                  ? mainCharacterConfig
+                  : characterConfig
+              }
             />
           </div>
         )}
@@ -396,6 +540,16 @@ export function KnotVisualEditor({
             {validationErrors.length} error
             {validationErrors.length > 1 ? 's' : ''}
           </span>
+        )}
+        {applyErrors.length > 0 && (
+          <div className="knot-visual-editor__apply-errors">
+            <span className="knot-visual-editor__apply-errors-title">Cannot apply:</span>
+            <ul className="knot-visual-editor__apply-errors-list">
+              {applyErrors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          </div>
         )}
         <div className="knot-visual-editor__buttons">
           <button

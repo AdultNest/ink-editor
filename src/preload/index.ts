@@ -31,6 +31,250 @@ export type FileChangeCallback = (eventType: WatchEventType, filePath: string) =
 export type WatcherErrorCallback = (errorMessage: string) => void;
 
 /**
+ * Ollama settings
+ */
+export interface OllamaSettings {
+  enabled: boolean;
+  baseUrl: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+}
+
+/**
+ * ComfyUI settings
+ */
+export interface ComfyUISettings {
+  enabled: boolean;
+  baseUrl: string;
+  checkpointModel: string;
+  defaultSteps: number;
+  defaultWidth: number;
+  defaultHeight: number;
+}
+
+/**
+ * Recent project entry
+ */
+export interface RecentProject {
+  path: string;
+  name: string;
+  lastOpened: number;
+}
+
+/**
+ * Represents a reference found in a file
+ */
+export interface FileReference {
+  filePath: string;
+  lineNumber: number;
+  lineContent: string;
+  matchStart: number;
+  matchEnd: number;
+}
+
+/**
+ * Represents a reference update request
+ */
+export interface ReferenceUpdate {
+  filePath: string;
+  oldText: string;
+  newText: string;
+}
+
+/**
+ * Application settings
+ */
+export interface AppSettings {
+  lastOpenedFolder?: string;
+  recentProjects?: RecentProject[];
+  ollama?: OllamaSettings;
+  comfyui?: ComfyUISettings;
+}
+
+/**
+ * Ollama test result
+ */
+export interface OllamaTestResult {
+  success: boolean;
+  error?: string;
+  models?: string[];
+}
+
+/**
+ * ComfyUI test result
+ */
+export interface ComfyUITestResult {
+  success: boolean;
+  error?: string;
+  checkpoints?: string[];
+}
+
+/**
+ * Ollama generation request
+ */
+export interface OllamaGenerateRequest {
+  baseUrl: string;
+  model: string;
+  prompt: string;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  /** Response format: 'json' for structured data, undefined for plain text */
+  format?: 'json';
+}
+
+/**
+ * Ollama generation response
+ */
+export interface OllamaGenerateResponse {
+  success: boolean;
+  error?: string;
+  response?: string;
+}
+
+/**
+ * ComfyUI workflow type
+ */
+export type ComfyUIWorkflowType = 'preview' | 'render';
+
+/**
+ * ComfyUI generation request
+ */
+export interface ComfyUIGenerateRequest {
+  baseUrl: string;
+  prompt: string;
+  negativePrompt?: string;
+  checkpointModel: string;
+  steps?: number;
+  width?: number;
+  height?: number;
+  seed?: number;
+  /** Project path for loading custom workflow */
+  projectPath?: string;
+  /** Workflow type: 'preview' for quick 256px, 'render' for full ~512px with hi-res */
+  workflowType?: ComfyUIWorkflowType;
+}
+
+/**
+ * ComfyUI generation response
+ */
+export interface ComfyUIGenerateResponse {
+  success: boolean;
+  error?: string;
+  promptId?: string;
+}
+
+/**
+ * ComfyUI status response
+ */
+export interface ComfyUIStatusResponse {
+  success: boolean;
+  error?: string;
+  status?: 'pending' | 'running' | 'completed' | 'error';
+  imageFilename?: string;
+  /** Subfolder for temp images (PreviewImage outputs) */
+  imageSubfolder?: string;
+  /** Image type: 'output' for SaveImage, 'temp' for PreviewImage */
+  imageType?: 'output' | 'temp';
+}
+
+// ============================================================================
+// Conversation Types
+// ============================================================================
+
+/**
+ * Ollama message for conversation
+ */
+export interface OllamaMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  tool_calls?: Array<{
+    function: {
+      name: string;
+      arguments: Record<string, unknown>;
+    };
+  }>;
+}
+
+/**
+ * Configuration for starting a conversation session
+ */
+export interface ConversationSessionConfig {
+  /** The user-defined goal */
+  goal: string;
+  /** Maximum iterations before stopping */
+  maxIterations: number;
+  /** Path to the project root */
+  projectPath: string;
+  /** Path to the ink file */
+  inkFilePath: string;
+  /** Ollama base URL */
+  ollamaBaseUrl: string;
+  /** Ollama model name */
+  ollamaModel: string;
+  /** Ollama generation options */
+  ollamaOptions?: {
+    temperature?: number;
+    maxTokens?: number;
+  };
+  /** Character AI config (optional) */
+  characterConfig?: unknown;
+  /** Prompt library (optional) */
+  promptLibrary?: unknown;
+}
+
+/**
+ * Session status
+ */
+export type ConversationSessionStatus = 'active' | 'completed' | 'error' | 'max_iterations' | 'cancelled';
+
+/**
+ * Conversation session state
+ */
+export interface ConversationSessionState {
+  sessionId: string;
+  status: ConversationSessionStatus;
+  goal: string;
+  messages: OllamaMessage[];
+  iterationCount: number;
+  maxIterations: number;
+  createdKnots: string[];
+  modifiedKnots: string[];
+  error?: string;
+}
+
+/**
+ * Result from a conversation turn
+ */
+export interface ConversationTurnResult {
+  sessionId: string;
+  status: ConversationSessionStatus;
+  message?: OllamaMessage;
+  toolCalls?: Array<{
+    name: string;
+    arguments: Record<string, unknown>;
+    result: string;
+  }>;
+  iterationCount: number;
+  maxIterations: number;
+  createdKnots: string[];
+  modifiedKnots: string[];
+  error?: string;
+  completionSummary?: string;
+}
+
+/**
+ * Callback type for conversation update events
+ */
+export type ConversationUpdateCallback = (sessionId: string, update: ConversationTurnResult) => void;
+
+/**
+ * Callback type for file change events from conversation
+ */
+export type ConversationFileChangeCallback = (filePath: string) => void;
+
+/**
  * Custom protocol name for local file access
  * Use this to construct URLs for local files (images, videos, etc.)
  */
@@ -148,6 +392,33 @@ export interface ElectronAPI {
   delete: (targetPath: string) => Promise<void>;
 
   /**
+   * Renames a file or directory
+   * @param oldPath - The current path
+   * @param newPath - The new path
+   */
+  rename: (oldPath: string, newPath: string) => Promise<void>;
+
+  /**
+   * Finds references to a file in the project
+   * @param projectPath - The project root path to search in
+   * @param searchTerm - The term to search for (e.g., filename)
+   * @param fileExtensions - Optional list of file extensions to search (default: .json, .ink, .conf)
+   */
+  findReferences: (
+    projectPath: string,
+    searchTerm: string,
+    fileExtensions?: string[]
+  ) => Promise<FileReference[]>;
+
+  /**
+   * Updates references in multiple files
+   * @param updates - Array of reference updates to apply
+   */
+  updateReferences: (
+    updates: ReferenceUpdate[]
+  ) => Promise<{ success: boolean; errors: string[] }>;
+
+  /**
    * Opens a file selection dialog
    * @param options - Dialog options
    * @returns Array of selected file paths, or null if canceled
@@ -163,6 +434,149 @@ export interface ElectronAPI {
    * @param targetPath - The path to show
    */
   showInExplorer: (targetPath: string) => Promise<void>;
+
+  // Settings API
+  /**
+   * Gets all application settings
+   */
+  getSettings: () => Promise<AppSettings>;
+
+  /**
+   * Updates application settings (partial update)
+   */
+  updateSettings: (updates: Partial<AppSettings>) => Promise<AppSettings>;
+
+  /**
+   * Adds a project to the recent projects list
+   */
+  addRecentProject: (projectPath: string) => Promise<RecentProject[]>;
+
+  /**
+   * Gets the list of recent projects
+   */
+  getRecentProjects: () => Promise<RecentProject[]>;
+
+  /**
+   * Clears all recent projects
+   */
+  clearRecentProjects: () => Promise<void>;
+
+  /**
+   * Registers a callback for menu events
+   */
+  onMenuOpenFolder: (callback: () => void) => () => void;
+  onMenuSave: (callback: () => void) => () => void;
+  onMenuOpenRecentProject: (callback: (projectPath: string) => void) => () => void;
+  onMenuClearRecentProjects: (callback: () => void) => () => void;
+
+  // Ollama API
+  /**
+   * Tests Ollama connection and returns available models
+   */
+  testOllama: (baseUrl: string) => Promise<OllamaTestResult>;
+
+  /**
+   * Generates text using Ollama
+   */
+  generateWithOllama: (request: OllamaGenerateRequest) => Promise<OllamaGenerateResponse>;
+
+  // ComfyUI API
+  /**
+   * Tests ComfyUI connection and returns available checkpoints
+   */
+  testComfyUI: (baseUrl: string) => Promise<ComfyUITestResult>;
+
+  /**
+   * Queues image generation with ComfyUI
+   */
+  generateWithComfyUI: (request: ComfyUIGenerateRequest) => Promise<ComfyUIGenerateResponse>;
+
+  /**
+   * Checks status of a ComfyUI generation
+   */
+  getComfyUIStatus: (baseUrl: string, promptId: string) => Promise<ComfyUIStatusResponse>;
+
+  /**
+   * Downloads a generated image from ComfyUI
+   */
+  downloadComfyUIImage: (
+    baseUrl: string,
+    filename: string,
+    destFolder: string,
+    destFilename: string
+  ) => Promise<{ success: boolean; error?: string; savedPath?: string }>;
+
+  /**
+   * Ensures the ComfyUI workflow files exist in the project
+   * Creates default ones if they don't exist
+   */
+  ensureComfyUIWorkflow: (
+    projectPath: string
+  ) => Promise<{ success: boolean; created: string[]; paths: Record<ComfyUIWorkflowType, string>; error?: string }>;
+
+  /**
+   * Fetches an image from ComfyUI as base64 (avoids CORS issues)
+   */
+  fetchComfyUIImageBase64: (
+    baseUrl: string,
+    filename: string,
+    subfolder?: string,
+    type?: string
+  ) => Promise<{ success: boolean; base64?: string; error?: string }>;
+
+  // Conversation API
+  /**
+   * Starts a new conversation session for AI-assisted generation
+   */
+  startConversationSession: (
+    config: ConversationSessionConfig
+  ) => Promise<{ success: boolean; sessionId?: string; error?: string }>;
+
+  /**
+   * Continues a conversation session (runs next turn)
+   */
+  continueConversation: (
+    sessionId: string,
+    ollamaBaseUrl: string,
+    ollamaModel: string,
+    ollamaOptions?: { temperature?: number; maxTokens?: number }
+  ) => Promise<ConversationTurnResult>;
+
+  /**
+   * Sends a user message to the conversation
+   */
+  sendConversationMessage: (
+    sessionId: string,
+    message: string,
+    ollamaBaseUrl: string,
+    ollamaModel: string,
+    ollamaOptions?: { temperature?: number; maxTokens?: number }
+  ) => Promise<ConversationTurnResult>;
+
+  /**
+   * Gets the current state of a conversation session
+   */
+  getConversationState: (sessionId: string) => Promise<ConversationSessionState | null>;
+
+  /**
+   * Cancels a conversation session
+   */
+  cancelConversationSession: (sessionId: string) => Promise<boolean>;
+
+  /**
+   * Ends and deletes a conversation session
+   */
+  endConversationSession: (sessionId: string) => Promise<boolean>;
+
+  /**
+   * Registers a callback for conversation update events
+   */
+  onConversationUpdate: (callback: ConversationUpdateCallback) => () => void;
+
+  /**
+   * Registers a callback for file changes from conversation tools
+   */
+  onConversationFileChange: (callback: ConversationFileChangeCallback) => () => void;
 }
 
 // Expose the electronAPI to the renderer process via contextBridge
@@ -207,7 +621,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const normalizedPath = filePath.replace(/\\/g, '/');
     const encodedPath = normalizedPath
       .split('/')
-      .map((segment) => encodeURIComponent(segment))
+      .map((segment, index) => {
+        // Don't encode Windows drive letter (e.g., "D:")
+        if (index === 0 && /^[A-Za-z]:$/.test(segment)) {
+          return segment;
+        }
+        return encodeURIComponent(segment);
+      })
       .join('/');
     return `${LOCAL_FILE_PROTOCOL}:///${encodedPath}`;
   },
@@ -273,6 +693,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('fs:delete', targetPath);
   },
 
+  // Rename a file or directory
+  rename: (oldPath: string, newPath: string): Promise<void> => {
+    return ipcRenderer.invoke('fs:rename', oldPath, newPath);
+  },
+
+  // Find references to a file in the project
+  findReferences: (
+    projectPath: string,
+    searchTerm: string,
+    fileExtensions?: string[]
+  ): Promise<FileReference[]> => {
+    return ipcRenderer.invoke('fs:findReferences', projectPath, searchTerm, fileExtensions);
+  },
+
+  // Update references in multiple files
+  updateReferences: (
+    updates: ReferenceUpdate[]
+  ): Promise<{ success: boolean; errors: string[] }> => {
+    return ipcRenderer.invoke('fs:updateReferences', updates);
+  },
+
   // Open file selection dialog
   openFiles: (options?: {
     title?: string;
@@ -285,5 +726,175 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Show file/folder in system file explorer
   showInExplorer: (targetPath: string): Promise<void> => {
     return ipcRenderer.invoke('shell:showInExplorer', targetPath);
+  },
+
+  // Get all settings
+  getSettings: (): Promise<AppSettings> => {
+    return ipcRenderer.invoke('settings:getAll');
+  },
+
+  // Update settings
+  updateSettings: (updates: Partial<AppSettings>): Promise<AppSettings> => {
+    return ipcRenderer.invoke('settings:update', updates);
+  },
+
+  // Test Ollama connection
+  testOllama: (baseUrl: string): Promise<OllamaTestResult> => {
+    return ipcRenderer.invoke('ai:ollama:test', baseUrl);
+  },
+
+  // Generate with Ollama
+  generateWithOllama: (request: OllamaGenerateRequest): Promise<OllamaGenerateResponse> => {
+    return ipcRenderer.invoke('ai:ollama:generate', request);
+  },
+
+  // Test ComfyUI connection
+  testComfyUI: (baseUrl: string): Promise<ComfyUITestResult> => {
+    return ipcRenderer.invoke('ai:comfyui:test', baseUrl);
+  },
+
+  // Generate with ComfyUI
+  generateWithComfyUI: (request: ComfyUIGenerateRequest): Promise<ComfyUIGenerateResponse> => {
+    return ipcRenderer.invoke('ai:comfyui:generate', request);
+  },
+
+  // Check ComfyUI status
+  getComfyUIStatus: (baseUrl: string, promptId: string): Promise<ComfyUIStatusResponse> => {
+    return ipcRenderer.invoke('ai:comfyui:status', baseUrl, promptId);
+  },
+
+  // Download ComfyUI image
+  downloadComfyUIImage: (
+    baseUrl: string,
+    filename: string,
+    destFolder: string,
+    destFilename: string
+  ): Promise<{ success: boolean; error?: string; savedPath?: string }> => {
+    return ipcRenderer.invoke('ai:comfyui:download', baseUrl, filename, destFolder, destFilename);
+  },
+
+  // Ensure ComfyUI workflow files exist
+  ensureComfyUIWorkflow: (
+    projectPath: string
+  ): Promise<{ success: boolean; created: string[]; paths: Record<ComfyUIWorkflowType, string>; error?: string }> => {
+    return ipcRenderer.invoke('ai:comfyui:ensureWorkflow', projectPath);
+  },
+
+  // Fetch ComfyUI image as base64
+  fetchComfyUIImageBase64: (
+    baseUrl: string,
+    filename: string,
+    subfolder?: string,
+    type?: string
+  ): Promise<{ success: boolean; base64?: string; error?: string }> => {
+    return ipcRenderer.invoke('ai:comfyui:fetchImageBase64', baseUrl, filename, subfolder, type);
+  },
+
+  // Start conversation session
+  startConversationSession: (
+    config: ConversationSessionConfig
+  ): Promise<{ success: boolean; sessionId?: string; error?: string }> => {
+    return ipcRenderer.invoke('conversation:start', config);
+  },
+
+  // Continue conversation
+  continueConversation: (
+    sessionId: string,
+    ollamaBaseUrl: string,
+    ollamaModel: string,
+    ollamaOptions?: { temperature?: number; maxTokens?: number }
+  ): Promise<ConversationTurnResult> => {
+    return ipcRenderer.invoke('conversation:continue', sessionId, ollamaBaseUrl, ollamaModel, ollamaOptions);
+  },
+
+  // Send message to conversation
+  sendConversationMessage: (
+    sessionId: string,
+    message: string,
+    ollamaBaseUrl: string,
+    ollamaModel: string,
+    ollamaOptions?: { temperature?: number; maxTokens?: number }
+  ): Promise<ConversationTurnResult> => {
+    return ipcRenderer.invoke('conversation:send', sessionId, message, ollamaBaseUrl, ollamaModel, ollamaOptions);
+  },
+
+  // Get conversation state
+  getConversationState: (sessionId: string): Promise<ConversationSessionState | null> => {
+    return ipcRenderer.invoke('conversation:getState', sessionId);
+  },
+
+  // Cancel conversation
+  cancelConversationSession: (sessionId: string): Promise<boolean> => {
+    return ipcRenderer.invoke('conversation:cancel', sessionId);
+  },
+
+  // End conversation
+  endConversationSession: (sessionId: string): Promise<boolean> => {
+    return ipcRenderer.invoke('conversation:end', sessionId);
+  },
+
+  // Conversation update listener
+  onConversationUpdate: (callback: ConversationUpdateCallback): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      sessionId: string,
+      update: ConversationTurnResult
+    ): void => {
+      callback(sessionId, update);
+    };
+    ipcRenderer.on('conversation:update', listener);
+    return () => ipcRenderer.removeListener('conversation:update', listener);
+  },
+
+  // Conversation file change listener
+  onConversationFileChange: (callback: ConversationFileChangeCallback): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      filePath: string
+    ): void => {
+      callback(filePath);
+    };
+    ipcRenderer.on('conversation:file-changed', listener);
+    return () => ipcRenderer.removeListener('conversation:file-changed', listener);
+  },
+
+  // Add project to recent list
+  addRecentProject: (projectPath: string): Promise<RecentProject[]> => {
+    return ipcRenderer.invoke('settings:addRecentProject', projectPath);
+  },
+
+  // Get recent projects
+  getRecentProjects: (): Promise<RecentProject[]> => {
+    return ipcRenderer.invoke('settings:getRecentProjects');
+  },
+
+  // Clear recent projects
+  clearRecentProjects: (): Promise<void> => {
+    return ipcRenderer.invoke('settings:clearRecentProjects');
+  },
+
+  // Menu event listeners
+  onMenuOpenFolder: (callback: () => void): (() => void) => {
+    const listener = (): void => callback();
+    ipcRenderer.on('menu:openFolder', listener);
+    return () => ipcRenderer.removeListener('menu:openFolder', listener);
+  },
+
+  onMenuSave: (callback: () => void): (() => void) => {
+    const listener = (): void => callback();
+    ipcRenderer.on('menu:save', listener);
+    return () => ipcRenderer.removeListener('menu:save', listener);
+  },
+
+  onMenuOpenRecentProject: (callback: (projectPath: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, projectPath: string): void => callback(projectPath);
+    ipcRenderer.on('menu:openRecentProject', listener);
+    return () => ipcRenderer.removeListener('menu:openRecentProject', listener);
+  },
+
+  onMenuClearRecentProjects: (callback: () => void): (() => void) => {
+    const listener = (): void => callback();
+    ipcRenderer.on('menu:clearRecentProjects', listener);
+    return () => ipcRenderer.removeListener('menu:clearRecentProjects', listener);
   },
 } satisfies ElectronAPI);

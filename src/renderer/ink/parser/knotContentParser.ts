@@ -22,6 +22,7 @@ import type {
   ConditionalContentItem,
   ConditionalBranch,
   RawContentItem,
+  StitchContentItem,
 } from './inkTypes';
 
 // ============================================================================
@@ -64,11 +65,19 @@ const FLAG_SET_PATTERN = /^~\s*SetStoryFlag\s*\(\s*"([^"]+)"\s*\)/;
 /** Remove story flag: ~ RemoveStoryFlag("flag") */
 const FLAG_REMOVE_PATTERN = /^~\s*RemoveStoryFlag\s*\(\s*"([^"]+)"\s*\)/;
 
-/** Choice pattern: * or + with optional bracket text and divert */
-const CHOICE_PATTERN = /^(\*|\+)\s*(?:\[([^\]]+)\]|([^->\n]+?))(?:\s*->\s*(\w+|END))?\s*$/;
+/** Choice pattern: * or + with optional <label>, bracket text, and divert
+ * Examples:
+ *   * <Label> Output text -> target
+ *   * [bracketed text] -> target
+ *   * unbracketed text -> target
+ */
+const CHOICE_PATTERN = /^(\*|\+)\s*(?:<([^>]+)>\s*)?(?:\[([^\]]+)\]|([^->\n]+?))(?:\s*->\s*(\w+|END))?\s*$/;
 
-/** Standalone divert: -> target */
-const DIVERT_PATTERN = /^->\s*(\w+|END)\s*$/;
+/** Standalone divert: -> target or -> knot.stitch */
+const DIVERT_PATTERN = /^->\s*([\w.]+|END)\s*$/;
+
+/** Stitch header: = stitch_name */
+const STITCH_PATTERN = /^=\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/;
 
 /** Conditional block start: { */
 const CONDITIONAL_START_PATTERN = /^\{$/;
@@ -107,9 +116,10 @@ export function resetIdCounter(): void {
  * Parse knot body content into structured items
  *
  * @param bodyContent - The body content of the knot (without header line)
+ * @param knotName - Optional knot name for resolving stitch diverts
  * @returns Array of KnotContentItem
  */
-export function parseKnotContent(bodyContent: string): KnotContentItem[] {
+export function parseKnotContent(bodyContent: string, knotName?: string): KnotContentItem[] {
   const items: KnotContentItem[] = [];
   const lines = bodyContent.split('\n');
   let i = 0;
@@ -140,8 +150,14 @@ export function parseKnotContent(bodyContent: string): KnotContentItem[] {
     let item: KnotContentItem | null = null;
     let linesConsumed = 1;
 
+    // Check for stitch header (= stitch_name)
+    if (STITCH_PATTERN.test(trimmed)) {
+      const result = parseStitch(lines, i, knotName);
+      item = result.item;
+      linesConsumed = result.linesConsumed;
+    }
     // Check for conditional block (multi-line)
-    if (CONDITIONAL_START_PATTERN.test(trimmed)) {
+    else if (CONDITIONAL_START_PATTERN.test(trimmed)) {
       const result = parseConditionalBlock(lines, i);
       item = result.item;
       linesConsumed = result.linesConsumed;
@@ -218,7 +234,7 @@ export function parseKnotContent(bodyContent: string): KnotContentItem[] {
     }
     // Check for choice (may have nested content on following lines)
     else if (CHOICE_PATTERN.test(trimmed)) {
-      const result = parseChoice(lines, i);
+      const result = parseChoice(lines, i, knotName);
       item = result.item;
       linesConsumed = result.linesConsumed;
     }
@@ -245,11 +261,137 @@ export function parseKnotContent(bodyContent: string): KnotContentItem[] {
 }
 
 /**
+ * Parse a stitch header (just the marker, content is parsed at root level)
+ * Stitch is just a marker - its content follows as sibling items at root level
+ */
+function parseStitch(
+  lines: string[],
+  startIndex: number,
+  knotName?: string
+): { item: StitchContentItem; linesConsumed: number } {
+  const line = lines[startIndex];
+  const trimmed = line.trim();
+  const match = trimmed.match(STITCH_PATTERN);
+
+  if (!match) {
+    // Fallback
+    return {
+      item: {
+        id: generateId(),
+        type: 'stitch',
+        name: 'unknown',
+        content: [],
+        lineNumber: startIndex + 1,
+      },
+      linesConsumed: 1,
+    };
+  }
+
+  const stitchName = match[1];
+
+  // Stitch is just a marker - content follows at root level
+  // Only consume 1 line (the stitch header itself)
+  return {
+    item: {
+      id: generateId(),
+      type: 'stitch',
+      name: stitchName,
+      content: [], // Empty - content is at root level, not nested
+      lineNumber: startIndex + 1,
+    },
+    linesConsumed: 1,
+  };
+}
+
+/**
+ * Parse stitch content (similar to parseKnotContent but doesn't parse nested stitches)
+ */
+function parseStitchContent(bodyContent: string, knotName?: string): KnotContentItem[] {
+  const items: KnotContentItem[] = [];
+  const lines = bodyContent.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    if (POSITION_COMMENT_PATTERN.test(trimmed) || COMMENT_PATTERN.test(trimmed)) {
+      i++;
+      continue;
+    }
+
+    let item: KnotContentItem | null = null;
+    let linesConsumed = 1;
+
+    // Parse all content types except stitches
+    if (CONDITIONAL_START_PATTERN.test(trimmed)) {
+      const result = parseConditionalBlock(lines, i);
+      item = result.item;
+      linesConsumed = result.linesConsumed;
+    } else if (PLAYER_VIDEO_PATTERN.test(trimmed)) {
+      const match = trimmed.match(PLAYER_VIDEO_PATTERN);
+      if (match) item = createPlayerVideoItem(match[1], i + 1);
+    } else if (VIDEO_PATTERN.test(trimmed)) {
+      const match = trimmed.match(VIDEO_PATTERN);
+      if (match) item = createVideoItem(match[1], i + 1);
+    } else if (PLAYER_IMAGE_PATTERN.test(trimmed)) {
+      const match = trimmed.match(PLAYER_IMAGE_PATTERN);
+      if (match) item = createPlayerImageItem(match[1], i + 1);
+    } else if (FAKE_TYPE_PATTERN.test(trimmed)) {
+      const match = trimmed.match(FAKE_TYPE_PATTERN);
+      if (match) item = createFakeTypeItem(parseFloat(match[1]), i + 1);
+    } else if (WAIT_PATTERN.test(trimmed)) {
+      const match = trimmed.match(WAIT_PATTERN);
+      if (match) item = createWaitItem(parseFloat(match[1]), i + 1);
+    } else if (SIDE_STORY_PATTERN.test(trimmed)) {
+      const match = trimmed.match(SIDE_STORY_PATTERN);
+      if (match) item = createSideStoryItem(match[1], i + 1);
+    } else if (IMAGE_PATTERN.test(trimmed)) {
+      const match = trimmed.match(IMAGE_PATTERN);
+      if (match) item = createImageItem(match[1], i + 1);
+    } else if (TRANSITION_PATTERN.test(trimmed)) {
+      const match = trimmed.match(TRANSITION_PATTERN);
+      if (match) item = createTransitionItem(match[1], match[2], i + 1);
+    } else if (FLAG_SET_PATTERN.test(trimmed)) {
+      const match = trimmed.match(FLAG_SET_PATTERN);
+      if (match) item = createFlagOperationItem('set', match[1], i + 1);
+    } else if (FLAG_REMOVE_PATTERN.test(trimmed)) {
+      const match = trimmed.match(FLAG_REMOVE_PATTERN);
+      if (match) item = createFlagOperationItem('remove', match[1], i + 1);
+    } else if (CHOICE_PATTERN.test(trimmed)) {
+      const result = parseChoice(lines, i, knotName);
+      item = result.item;
+      linesConsumed = result.linesConsumed;
+    } else if (DIVERT_PATTERN.test(trimmed)) {
+      const match = trimmed.match(DIVERT_PATTERN);
+      if (match) item = createDivertItem(match[1], i + 1);
+    } else {
+      item = createTextItem(trimmed, i + 1);
+    }
+
+    if (item) {
+      items.push(item);
+    }
+
+    i += linesConsumed;
+  }
+
+  return items;
+}
+
+/**
  * Parse a choice and any nested content
+ * Supports: * <label> text -> target (label is optional)
  */
 function parseChoice(
   lines: string[],
-  startIndex: number
+  startIndex: number,
+  knotName?: string
 ): { item: ChoiceContentItem; linesConsumed: number } {
   const line = lines[startIndex];
   const trimmed = line.trim();
@@ -270,8 +412,9 @@ function parseChoice(
   }
 
   const isSticky = match[1] === '+';
-  const text = (match[2] || match[3] || '').trim();
-  const divert = match[4];
+  const label = match[2]?.trim(); // Optional label from <label> syntax
+  const text = (match[3] || match[4] || '').trim();
+  const divert = match[5];
 
   // Calculate the indentation level of this choice
   const choiceIndent = line.search(/\S/);
@@ -352,6 +495,7 @@ function parseChoice(
       divert: nestedDivert,
       nestedContent,
       lineNumber: startIndex + 1,
+      label,
     },
     linesConsumed: i - startIndex,
   };
@@ -566,6 +710,16 @@ export function createRawItem(content: string, lineNumber: number): RawContentIt
   };
 }
 
+export function createStitchItem(name: string, lineNumber: number): StitchContentItem {
+  return {
+    id: generateId(),
+    type: 'stitch',
+    name,
+    content: [],
+    lineNumber,
+  };
+}
+
 // ============================================================================
 // Default Item Creators (for adding new items in visual editor)
 // ============================================================================
@@ -603,5 +757,7 @@ export function createDefaultItem(type: KnotContentItem['type']): KnotContentIte
       return { id: generateId(), type: 'conditional', branches: [] };
     case 'raw':
       return { id: generateId(), type: 'raw', content: '' };
+    case 'stitch':
+      return { id: generateId(), type: 'stitch', name: 'continue', content: [] };
   }
 }

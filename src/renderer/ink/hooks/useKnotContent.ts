@@ -300,10 +300,66 @@ export function useKnotContent({
       });
   };
 
+  // Helper: Update stitch diverts when a stitch is renamed
+  const updateStitchDiverts = (
+    items: KnotContentItem[],
+    oldStitchName: string,
+    newStitchName: string
+  ): KnotContentItem[] => {
+    return items.map((item) => {
+      if (item.type === 'choice' && item.divert) {
+        // Check if this choice diverts to the old stitch (format: knot.stitch or just .stitch)
+        if (item.divert.endsWith(`.${oldStitchName}`)) {
+          const prefix = item.divert.slice(0, -oldStitchName.length);
+          return { ...item, divert: `${prefix}${newStitchName}` };
+        }
+      }
+      // Recurse into nested content
+      if (item.type === 'choice' && item.nestedContent) {
+        return {
+          ...item,
+          nestedContent: updateStitchDiverts(item.nestedContent, oldStitchName, newStitchName),
+        };
+      }
+      return item;
+    });
+  };
+
   // Update an existing item (searches tree recursively)
+  // Also updates choice diverts when a stitch is renamed
   const updateItem = useCallback(
     (id: string, updates: Partial<KnotContentItem>) => {
-      setItemsState((prev) => updateInTree(prev, id, updates));
+      setItemsState((prev) => {
+        // Find the item being updated to check if it's a stitch rename
+        const findItem = (items: KnotContentItem[]): KnotContentItem | null => {
+          for (const item of items) {
+            if (item.id === id) return item;
+            if (item.type === 'choice' && item.nestedContent) {
+              const found = findItem(item.nestedContent);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        const targetItem = findItem(prev);
+        let updatedItems = updateInTree(prev, id, updates);
+
+        // If renaming a stitch, also update all diverts pointing to it
+        if (
+          targetItem?.type === 'stitch' &&
+          'name' in updates &&
+          updates.name !== targetItem.name
+        ) {
+          updatedItems = updateStitchDiverts(
+            updatedItems,
+            targetItem.name,
+            updates.name as string
+          );
+        }
+
+        return updatedItems;
+      });
       setIsDirty(true);
     },
     []
@@ -418,12 +474,22 @@ export function useKnotContent({
               message: 'Choice text is required',
             });
           }
+          // Note: Divert validation is done at apply time, not during editing
+          // This allows users to create choices and add content before setting the divert
           break;
         case 'divert':
           if (!item.target) {
             errors.push({
               itemId: item.id,
               message: 'Divert target is required',
+            });
+          }
+          break;
+        case 'stitch':
+          if (!item.name) {
+            errors.push({
+              itemId: item.id,
+              message: 'Stitch name is required',
             });
           }
           break;

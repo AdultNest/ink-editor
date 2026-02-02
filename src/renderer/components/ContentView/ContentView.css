@@ -73,6 +73,8 @@
 /* Text viewer */
 .text-viewer {
   padding: 0;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .text-viewer-content {
@@ -133,6 +135,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .image-viewer-toolbar {
@@ -213,6 +216,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 0 auto;
 }
 
 .video-viewer-toolbar {
@@ -253,6 +257,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .audio-viewer-toolbar {

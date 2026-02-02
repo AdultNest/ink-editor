@@ -17,6 +17,16 @@ import InkNodeDetail from './InkNodeDetail';
 import FlagsPanel from './FlagsPanel';
 import ImportsPanel, { type AvailableMethod } from './ImportsPanel';
 import LayoutMenu from './LayoutMenu';
+import ConversationPanel from './ConversationPanel';
+import type { AppSettings } from '../../../preload';
+import {
+  loadConversationMeta,
+  loadCharacterConfig,
+  findMainCharacter,
+  type CharacterAIConfig,
+  type ConversationMeta,
+} from '../ai/characterConfig';
+import { promptLibraryService, type ProjectPromptLibrary } from '../../services';
 
 import './InkEditor.css';
 
@@ -27,6 +37,8 @@ export interface InkEditorProps {
   fileName: string;
   /** Callback when dirty state changes */
   onDirtyChange?: (isDirty: boolean) => void;
+  /** Application settings for AI features */
+  appSettings?: AppSettings;
 }
 
 /** Handle exposed by InkEditor for parent components */
@@ -36,7 +48,7 @@ export interface InkEditorHandle {
 }
 
 export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function InkEditor(
-  { filePath, fileName, onDirtyChange },
+  { filePath, fileName, onDirtyChange, appSettings },
   ref
 ) {
   const {
@@ -102,8 +114,20 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
   const [showImportsPanel, setShowImportsPanel] = useState(false);
   const [availableMethods, setAvailableMethods] = useState<AvailableMethod[]>([]);
 
+  // AI Conversation panel state
+  const [showConversationPanel, setShowConversationPanel] = useState(false);
+
+  // Prompt library state
+  const [promptLibrary, setPromptLibrary] = useState<ProjectPromptLibrary | null>(null);
+
   // Project root path (where Images/Videos folders are located)
   const [projectRoot, setProjectRoot] = useState<string>('');
+
+  // Character AI configuration
+  const [conversationMeta, setConversationMeta] = useState<ConversationMeta | null>(null);
+  const [characterConfig, setCharacterConfig] = useState<CharacterAIConfig | null>(null);
+  const [mainCharacterConfig, setMainCharacterConfig] = useState<CharacterAIConfig | null>(null);
+  const [settingsFileReady, setSettingsFileReady] = useState(false);
 
   // Focus node function from InkNodeEditor (for navigation)
   const focusNodeRef = useRef<((nodeId: string) => void) | null>(null);
@@ -161,21 +185,167 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
     findProjectRoot();
   }, [filePath]);
 
-  // Load available methods from methods.conf.json
+  // Ensure settings file exists when opening a .ink file
+  useEffect(() => {
+    let isMounted = true;
+
+    async function ensureSettingsFile() {
+      setSettingsFileReady(false);
+
+      if (!filePath || !filePath.toLowerCase().endsWith('.ink')) {
+        if (isMounted) setSettingsFileReady(true);
+        return;
+      }
+
+      try {
+        // Get the settings file path
+        const settingsPath = filePath.replace(/\.ink$/i, '-settings.json');
+
+        // Check if it exists
+        const exists = await window.electronAPI.fileExists(settingsPath);
+        if (exists) {
+          console.log('[InkEditor] Settings file exists:', settingsPath);
+          if (isMounted) setSettingsFileReady(true);
+          return;
+        }
+
+        // Create the settings file with default content
+        const pathSeparator = filePath.includes('\\') ? '\\' : '/';
+        const fileName = filePath.split(pathSeparator).pop() || '';
+        const baseName = fileName.replace(/\.ink$/i, '');
+
+        const settingsContent = JSON.stringify({
+          storyId: baseName,
+          contactID: '',
+          nextStoryId: '',
+          isStartingStory: false,
+          forceTimeInHours: 12,
+          passTimeInMinutes: 0,
+          timeIsExact: false,
+          forceDay: 0,
+          isSideStory: false,
+        }, null, 2);
+
+        await window.electronAPI.createFile(settingsPath, settingsContent);
+        console.log('[InkEditor] Created settings file:', settingsPath);
+      } catch (err) {
+        console.error('[InkEditor] Failed to ensure settings file:', err);
+      }
+
+      if (isMounted) setSettingsFileReady(true);
+    }
+
+    ensureSettingsFile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filePath]);
+
+  // Load conversation metadata from paired JSON file (after settings file is ready)
+  useEffect(() => {
+    async function loadConvoMeta() {
+      if (!filePath || !settingsFileReady) return;
+
+      const meta = await loadConversationMeta(filePath);
+      setConversationMeta(meta);
+      console.log('[InkEditor] Loaded conversation meta:', meta);
+    }
+
+    loadConvoMeta();
+  }, [filePath, settingsFileReady]);
+
+  // Load character AI config when we have projectRoot and conversationMeta
+  useEffect(() => {
+    async function loadCharConfig() {
+      if (!projectRoot || !conversationMeta?.contactID) {
+        setCharacterConfig(null);
+        return;
+      }
+
+      const config = await loadCharacterConfig(projectRoot, conversationMeta.contactID);
+      setCharacterConfig(config);
+      console.log('[InkEditor] Loaded character config:', config);
+    }
+
+    loadCharConfig();
+  }, [projectRoot, conversationMeta]);
+
+  // Load main character config (for player images)
+  useEffect(() => {
+    async function loadMainChar() {
+      if (!projectRoot) {
+        setMainCharacterConfig(null);
+        return;
+      }
+
+      const config = await findMainCharacter(projectRoot);
+      setMainCharacterConfig(config);
+      console.log('[InkEditor] Loaded main character config:', config);
+    }
+
+    loadMainChar();
+  }, [projectRoot]);
+
+  // Load prompt library when project root is available
+  useEffect(() => {
+    async function loadLibrary() {
+      if (!projectRoot) {
+        setPromptLibrary(null);
+        return;
+      }
+
+      try {
+        const library = await promptLibraryService.loadLibrary(projectRoot);
+        setPromptLibrary(library);
+        console.log('[InkEditor] Loaded prompt library');
+      } catch (err) {
+        console.error('[InkEditor] Failed to load prompt library:', err);
+        setPromptLibrary(null);
+      }
+    }
+
+    loadLibrary();
+  }, [projectRoot]);
+
+  // Ensure ComfyUI workflow file exists when project is opened and ComfyUI is enabled
+  useEffect(() => {
+    async function ensureWorkflow() {
+      if (!projectRoot || !appSettings?.comfyui?.enabled) {
+        return;
+      }
+
+      console.log('[InkEditor] Ensuring ComfyUI workflow files exist...');
+      const result = await window.electronAPI.ensureComfyUIWorkflow(projectRoot);
+
+      if (result.success) {
+        if (result.created.length > 0) {
+          console.log('[InkEditor] Created default ComfyUI workflow files:', result.created.join(', '));
+        }
+        console.log('[InkEditor] ComfyUI workflow files:', result.paths.preview, result.paths.render);
+      } else {
+        console.error('[InkEditor] Failed to ensure workflow files:', result.error);
+      }
+    }
+
+    ensureWorkflow();
+  }, [projectRoot, appSettings?.comfyui?.enabled]);
+
+  // Load available methods from methods.conf
   useEffect(() => {
     async function loadAvailableMethods() {
       if (!filePath) return;
 
       try {
-        // Find the project root by looking for methods.conf.json
+        // Find the project root by looking for methods.conf
         // Walk up the directory tree from the file path
         const pathSeparator = filePath.includes('\\') ? '\\' : '/';
         const pathParts = filePath.split(pathSeparator);
 
-        // Try each parent directory until we find methods.conf.json
+        // Try each parent directory until we find methods.conf
         for (let i = pathParts.length - 1; i >= 0; i--) {
           const testPath = pathParts.slice(0, i + 1).join(pathSeparator);
-          const configPath = `${testPath}${pathSeparator}methods.conf.json`;
+          const configPath = `${testPath}${pathSeparator}methods.conf`;
 
           try {
             const exists = await window.electronAPI.fileExists(configPath);
@@ -192,7 +362,7 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
           }
         }
 
-        // No methods.conf.json found, use empty array
+        // No methods.conf found, use empty array
         setAvailableMethods([]);
       } catch {
         setAvailableMethods([]);
@@ -307,6 +477,18 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
   const errorCount = allErrors.filter(e => e.severity === 'error').length;
   const warningCount = allErrors.filter(e => e.severity === 'warning').length;
 
+  // Check if AI is available
+  const isAIAvailable = appSettings?.ollama?.enabled || false;
+
+  // Handle AI-generated content
+  const handleGeneratedContent = useCallback((inkContent: string) => {
+    // Append the generated content to the existing raw content
+    const newContent = rawContent.trim()
+      ? `${rawContent}\n\n${inkContent}`
+      : inkContent;
+    setRawContent(newContent);
+  }, [rawContent, setRawContent]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -412,6 +594,17 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
               onLayout={applyLayout}
               disabled={!parsedInk || parsedInk.knots.length === 0}
             />
+          )}
+
+          {/* AI Assistant button (multi-turn conversation) */}
+          {isAIAvailable && (
+            <button
+              className="ink-btn ink-btn-ai"
+              onClick={() => setShowConversationPanel(true)}
+              title="AI Assistant (multi-turn conversation, requires Ollama)"
+            >
+              AI Assistant
+            </button>
           )}
 
           {/* Save button */}
@@ -520,8 +713,14 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
                   onUpdate={(content) => updateKnot(selectedKnot.name, content)}
                   onClose={() => setSelectedKnotId(null)}
                   projectPath={projectRoot}
+                  inkFilePath={filePath}
                   availableKnots={parsedInk?.knots.map(k => k.name) ?? []}
                   availableFlags={parsedInk?.allStoryFlags ?? []}
+                  appSettings={appSettings}
+                  characterConfig={characterConfig}
+                  mainCharacterConfig={mainCharacterConfig}
+                  promptLibrary={promptLibrary}
+                  onAIGenerate={handleGeneratedContent}
                 />
               </div>
             )}
@@ -642,6 +841,19 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Conversation panel */}
+      {appSettings && (
+        <ConversationPanel
+          isOpen={showConversationPanel}
+          onClose={() => setShowConversationPanel(false)}
+          appSettings={appSettings}
+          projectPath={projectRoot}
+          inkFilePath={filePath}
+          characterConfig={characterConfig}
+          promptLibrary={promptLibrary}
+        />
       )}
     </div>
   );

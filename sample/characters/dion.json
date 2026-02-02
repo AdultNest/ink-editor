@@ -4,11 +4,11 @@
     "contactName": "Dion",
     "contactNickname": "Dion",
     "contactNicknameShort": "Dion",
+    "profilePicturePath": "dion_1770056047410.png",
     "contactLastName": "Carter",
-    "profilePicturePath": "dion.png",
     "characterColorHex": "#ff6b35",
     "contactDescription": "Dion is my twin brother, though we couldn't be more different. He's the 'responsible' one who always tries to keep me out of trouble, which is hilarious considering some of the shit he gets into.",
-    "contactPersonality": "Overly dramatic, thinks he's the mature twin, secretly jealous of my adventures. Has a weird obsession with organizing everything and giving unsolicited advice.",
+    "contactPersonality": "Starts conversations like they're rare collectibles, then your coffee cup feels like it's been waiting for them. Almost always loses track of time when they're finally comfortable.",
     "contactHistory": "We've been stuck together since birth, literally. Now he acts like my personal life coach while somehow being even more of a mess than me haha.",
-    "showContactFromStart": true
+    "showContactFromStart": false
 }

@@ -1,0 +1,229 @@
+/**
+ * QuickPromptBuilder Styles
+ */
+
+.quick-prompt-builder {
+  background-color: #252526;
+  border: 1px solid #4a3f6b;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Header */
+.quick-prompt-builder__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+  background: linear-gradient(135deg, rgba(107, 75, 163, 0.15) 0%, rgba(74, 53, 128, 0.1) 100%);
+  border-bottom: 1px solid #4a3f6b;
+}
+
+.quick-prompt-builder__header:hover {
+  background: linear-gradient(135deg, rgba(107, 75, 163, 0.25) 0%, rgba(74, 53, 128, 0.15) 100%);
+}
+
+.quick-prompt-builder__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e0d0f0;
+}
+
+.quick-prompt-builder__title::before {
+  content: '📚';
+  font-size: 14px;
+}
+
+.quick-prompt-builder__icon {
+  font-size: 10px;
+  color: #808080;
+}
+
+.quick-prompt-builder__count {
+  background-color: #0e639c;
+  color: #ffffff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.quick-prompt-builder__clear {
+  background: none;
+  border: none;
+  color: #808080;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.quick-prompt-builder__clear:hover {
+  background-color: #3c3c3c;
+  color: #d4d4d4;
+}
+
+/* Selected preview (when collapsed) */
+.quick-prompt-builder__selected-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  padding-top: 0;
+}
+
+/* Content (when expanded) */
+.quick-prompt-builder__content {
+  border-top: 1px solid #3c3c3c;
+  padding: 12px;
+}
+
+.quick-prompt-builder__loading {
+  text-align: center;
+  color: #808080;
+  font-size: 12px;
+  padding: 16px;
+}
+
+/* Category tabs */
+.quick-prompt-builder__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.quick-prompt-builder__category-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #3c3c3c;
+  border: 1px solid #4c4c4c;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-prompt-builder__category-btn:hover {
+  background-color: #4c4c4c;
+  border-color: #5c5c5c;
+}
+
+.quick-prompt-builder__category-btn.active {
+  background-color: #0e639c;
+  border-color: #1177bb;
+  color: #ffffff;
+}
+
+.quick-prompt-builder__category-count {
+  background-color: #252526;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #808080;
+}
+
+.quick-prompt-builder__category-btn.active .quick-prompt-builder__category-count {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.quick-prompt-builder__category-selected {
+  background-color: #ffd700;
+  color: #1e1e1e;
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Component chips */
+.quick-prompt-builder__components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.quick-prompt-builder__empty {
+  color: #808080;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.quick-prompt-builder__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background-color: #3c3c3c;
+  border: 1px solid #4c4c4c;
+  border-radius: 16px;
+  color: #d4d4d4;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.quick-prompt-builder__chip:hover {
+  background-color: #4c4c4c;
+  border-color: #5c5c5c;
+}
+
+.quick-prompt-builder__chip--selected {
+  background-color: #0e639c;
+  border-color: #1177bb;
+  color: #ffffff;
+}
+
+.quick-prompt-builder__chip--selected:hover {
+  background-color: #1177bb;
+}
+
+.quick-prompt-builder__chip-check {
+  font-size: 10px;
+  margin-left: 2px;
+}
+
+.quick-prompt-builder__chip-remove {
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+.quick-prompt-builder__chip:hover .quick-prompt-builder__chip-remove {
+  opacity: 1;
+}
+
+/* Summary section */
+.quick-prompt-builder__summary {
+  padding-top: 12px;
+  border-top: 1px solid #3c3c3c;
+}
+
+.quick-prompt-builder__summary-label {
+  font-size: 11px;
+  color: #808080;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.quick-prompt-builder__summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

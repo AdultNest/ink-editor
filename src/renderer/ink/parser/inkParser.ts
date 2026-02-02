@@ -23,18 +23,22 @@ const PATTERNS = {
   // Matches knot headers: === name === or == name or === name
   knot: /^(?:===?\s*)(\w+)(?:\s*===?)?\s*$/,
 
-  // Matches diverts: -> name or -> END
-  divert: /->\s*(\w+|END)/g,
+  // Matches diverts: -> name or -> END or -> knot.stitch
+  divert: /->\s*(\w+(?:\.\w+)?|END)/g,
 
-  // Matches choices: * or + followed by text and optional divert
-  // Captures: 1=choice type (* or +), 2=bracketed text, 3=unbracketed text, 4=divert target
-  choice: /^(\*|\+)\s*(?:\[([^\]]+)\]|(.+?))(?:\s*->\s*(\w+|END))?\s*$/,
+  // Matches choices: * or + followed by optional <label>, text and optional divert
+  // Captures: 1=choice type (* or +), 2=label (in angle brackets), 3=bracketed text, 4=unbracketed text, 5=divert target
+  // Examples: * <Tease> Oh yeah? Do tell... -> target
+  //           * [bracketed text] -> target
+  //           * unbracketed text -> target
+  //           * text -> knot.stitch (stitch divert)
+  choice: /^(\*|\+)\s*(?:<([^>]+)>\s*)?(?:\[([^\]]+)\]|(.+?))(?:\s*->\s*(\w+(?:\.\w+)?|END))?\s*$/,
 
   // Matches EXTERNAL declarations
   external: /^EXTERNAL\s+(\w+)\s*\(([^)]*)\)/,
 
   // Matches standalone diverts at the start of a line
-  standaloneDivert: /^\s*->\s*(\w+|END)\s*$/,
+  standaloneDivert: /^\s*->\s*(\w+(?:\.\w+)?|END)\s*$/,
 
   // Matches comments
   comment: /\/\/.*$/,
@@ -102,12 +106,13 @@ function parsePosition(line: string): NodePosition | null {
 
 /**
  * Parse a single choice line
+ * Supports: * <label> text -> target (label is optional)
  */
 function parseChoice(line: string, lineNumber: number): InkChoice | null {
   const match = line.match(PATTERNS.choice);
   if (!match) return null;
 
-  const [, choiceType, bracketedText, unbracketedText, divertTarget] = match;
+  const [, choiceType, label, bracketedText, unbracketedText, divertTarget] = match;
   const text = bracketedText || unbracketedText || '';
 
   return {
@@ -116,6 +121,7 @@ function parseChoice(line: string, lineNumber: number): InkChoice | null {
     divert: divertTarget,
     isSticky: choiceType === '+',
     rawContent: line,
+    label: label?.trim(),
   };
 }
 
@@ -369,7 +375,7 @@ export function parseInk(content: string): ParsedInk {
 
     // Track current choice context for multi-line choice blocks
     // When we see a choice, subsequent indented diverts belong to it
-    let currentChoiceContext: { text: string; indentLevel: number } | null = null;
+    let currentChoiceContext: { text: string; label?: string; indentLevel: number } | null = null;
 
     // Track conditional block parsing state
     let inConditionalBlock = false;
@@ -440,11 +446,11 @@ export function parseInk(content: string): ParsedInk {
           const flagName = flagInlineMatch[1];
           const restOfLine = flagInlineMatch[2].trim();
 
-          // Check if there's a divert in the rest of the line
-          const divertInBranchMatch = restOfLine.match(/->\s*(\w+|END)/);
+          // Check if there's a divert in the rest of the line (supports stitch diverts like knot.stitch)
+          const divertInBranchMatch = restOfLine.match(/->\s*(\w+(?:\.\w+)?|END)/);
           const branchDivert = divertInBranchMatch ? divertInBranchMatch[1] : undefined;
           const branchContent = divertInBranchMatch
-            ? restOfLine.replace(/->\s*(\w+|END)/, '').trim()
+            ? restOfLine.replace(/->\s*(\w+(?:\.\w+)?|END)/, '').trim()
             : restOfLine;
 
           currentBranches.push({
@@ -542,6 +548,7 @@ export function parseInk(content: string): ParsedInk {
             lineNumber,
             context: 'choice',
             choiceText: choice.text,
+            choiceLabel: choice.label,
           });
           // Choice has inline divert, so no pending choice context
           currentChoiceContext = null;
@@ -549,6 +556,7 @@ export function parseInk(content: string): ParsedInk {
           // Choice without inline divert - set as current context for subsequent diverts
           currentChoiceContext = {
             text: choice.text,
+            label: choice.label,
             indentLevel: leadingSpaces,
           };
         }
@@ -565,7 +573,17 @@ export function parseInk(content: string): ParsedInk {
             lineNumber,
             context: 'choice',
             choiceText: currentChoiceContext.text,
+            choiceLabel: currentChoiceContext.label,
           });
+          // Update the choice's divert property so validation recognizes it has a divert
+          // Search from the end to find the most recent choice with matching text
+          for (let j = choices.length - 1; j >= 0; j--) {
+            const c = choices[j];
+            if (c.text === currentChoiceContext!.text && !c.divert) {
+              c.divert = standaloneDivertMatch[1];
+              break;
+            }
+          }
           // After a divert, this choice block is done
           currentChoiceContext = null;
         } else {
@@ -652,10 +670,27 @@ export function parseInk(content: string): ParsedInk {
   // Check each knot's diverts
   for (const knot of knots) {
     for (const divert of knot.diverts) {
-      if (!knotNames.has(divert.target)) {
+      // For stitch diverts (e.g., "knot.stitch"), validate the knot part only
+      // The stitch itself is internal to the knot and can't be easily validated here
+      const targetToCheck = divert.target.includes('.')
+        ? divert.target.split('.')[0]
+        : divert.target;
+
+      if (!knotNames.has(targetToCheck)) {
         errors.push({
           message: `Divert target '${divert.target}' is not defined`,
           lineNumber: divert.lineNumber,
+          severity: 'error',
+        });
+      }
+    }
+
+    // Check for dangling choices (choices without diverts)
+    for (const choice of knot.choices) {
+      if (!choice.divert) {
+        errors.push({
+          message: `Dangling choice '${choice.text.slice(0, 30)}${choice.text.length > 30 ? '...' : ''}' has no divert target`,
+          lineNumber: choice.lineNumber,
           severity: 'error',
         });
       }

@@ -11,3 +11,4 @@ export { KnotVisualEditor } from './KnotVisualEditor';
 export { ContentItemEditor } from './ContentItemEditor';
 export { ContentAddToolbar } from './ContentAddToolbar';
 export { MessageComposer } from './MessageComposer';
+export { GenerateDialog, type GenerateDialogProps } from './GenerateDialog';

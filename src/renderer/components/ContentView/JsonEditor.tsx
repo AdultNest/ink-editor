@@ -14,6 +14,8 @@ export interface JsonEditorProps {
   fileName: string;
   /** Called when the file is saved */
   onSave?: (content: string) => void;
+  /** Called when dirty state changes */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 interface JsonNode {
@@ -233,7 +235,7 @@ function JsonTreeView({
 /**
  * JsonEditor - Main component
  */
-export function JsonEditor({ filePath, fileName }: JsonEditorProps) {
+export function JsonEditor({ filePath, fileName, onDirtyChange }: JsonEditorProps) {
   const [content, setContent] = useState<string>('');
   const [parsedJson, setParsedJson] = useState<unknown>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -243,6 +245,17 @@ export function JsonEditor({ filePath, fileName }: JsonEditorProps) {
   const [viewMode, setViewMode] = useState<'tree' | 'raw'>('tree');
   const [isSaving, setIsSaving] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Notify parent of dirty state changes (use ref to avoid infinite loops)
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  const prevDirtyRef = useRef(isDirty);
+  useEffect(() => {
+    if (prevDirtyRef.current !== isDirty) {
+      prevDirtyRef.current = isDirty;
+      onDirtyChangeRef.current?.(isDirty);
+    }
+  }, [isDirty]);
 
   // Load file content
   useEffect(() => {

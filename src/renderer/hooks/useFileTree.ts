@@ -19,6 +19,7 @@ import {
   createNodeFromPath,
   getParentPath,
 } from '../components/FileTree/types';
+import { PROMPT_LIBRARY_FILENAME, getDefaultLibrary, promptLibraryService } from '../services';
 
 /**
  * State returned by the useFileTree hook
@@ -36,6 +37,8 @@ export interface UseFileTreeState {
   selectedNode: FileTreeNode | null;
   /** Set of expanded folder paths */
   expandedFolders: Set<string>;
+  /** Set of explicitly collapsed folder paths (for persistence) */
+  collapsedFolders: Set<string>;
 }
 
 /**
@@ -62,8 +65,12 @@ export interface UseFileTreeActions {
   importFiles: (targetPath: string) => Promise<void>;
   /** Delete a file or folder */
   deleteItem: (path: string) => Promise<void>;
+  /** Rename a file or folder */
+  renameItem: (oldPath: string, newPath: string) => Promise<void>;
   /** Create a new project with default structure in the given folder */
   createProject: () => Promise<string | null>;
+  /** Set the collapsed folders (for loading from config) */
+  setCollapsedFolders: (folders: Set<string>) => void;
 }
 
 /**
@@ -109,6 +116,7 @@ export function useFileTree(): UseFileTreeReturn {
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<FileTreeNode | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
 
   // Refs for cleanup functions and current values
   const fileChangeCleanupRef = useRef<(() => void) | null>(null);
@@ -235,6 +243,12 @@ export function useFileTree(): UseFileTreeReturn {
         await window.electronAPI.setLastFolder(folderPath);
       }
 
+      // Ensure project files exist (prompt library, methods.conf)
+      // This runs in background and doesn't block folder loading
+      promptLibraryService.ensureProjectFiles(folderPath).catch(err => {
+        console.error('Failed to ensure project files:', err);
+      });
+
       // Set up file watcher
       setupWatcherListeners();
       await startWatching(folderPath);
@@ -334,6 +348,20 @@ export function useFileTree(): UseFileTreeReturn {
       return next;
     });
 
+    // Update collapsed folders set (for persistence)
+    // A folder is collapsed if it was explicitly closed by the user
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (isOpen) {
+        // Expanding - remove from collapsed list
+        next.delete(nodeId);
+      } else {
+        // Collapsing - add to collapsed list
+        next.add(nodeId);
+      }
+      return next;
+    });
+
     // If expanding, load children if not already loaded
     if (isOpen) {
       try {
@@ -356,6 +384,7 @@ export function useFileTree(): UseFileTreeReturn {
     setTreeData([]);
     setSelectedNode(null);
     setExpandedFolders(new Set());
+    setCollapsedFolders(new Set());
     setError(null);
 
     // Stop watcher
@@ -366,7 +395,7 @@ export function useFileTree(): UseFileTreeReturn {
 
   /**
    * Create a new file in the given parent directory
-   * For .ink files, also creates a corresponding .json file
+   * For .ink files, also creates a corresponding -settings.json file
    */
   const createFile = useCallback(async (parentPath: string, fileName: string): Promise<void> => {
     try {
@@ -387,20 +416,27 @@ export function useFileTree(): UseFileTreeReturn {
       // Create the file
       await window.electronAPI.createFile(filePath, initialContent);
 
-      // For .ink files, also create a corresponding .json file
+      // For .ink files, also create a corresponding -settings.json file
       if (fileName.endsWith('.ink')) {
-        const jsonFileName = fileName.replace(/\.ink$/, '.json');
-        const jsonFilePath = `${parentPath}${separator}${jsonFileName}`;
+        const baseName = fileName.replace(/\.ink$/, '');
+        const settingsFileName = `${baseName}-settings.json`;
+        const settingsFilePath = `${parentPath}${separator}${settingsFileName}`;
 
-        // Check if JSON file already exists
-        const jsonExists = await window.electronAPI.fileExists(jsonFilePath);
-        if (!jsonExists) {
-          const jsonContent = JSON.stringify({
-            name: fileName.replace(/\.ink$/, ''),
-            description: '',
-            variables: {},
+        // Check if settings file already exists
+        const settingsExists = await window.electronAPI.fileExists(settingsFilePath);
+        if (!settingsExists) {
+          const settingsContent = JSON.stringify({
+            storyId: baseName,
+            contactID: '',
+            nextStoryId: '',
+            isStartingStory: false,
+            forceTimeInHours: 12,
+            passTimeInMinutes: 0,
+            timeIsExact: false,
+            forceDay: 0,
+            isSideStory: false,
           }, null, 2);
-          await window.electronAPI.createFile(jsonFilePath, jsonContent);
+          await window.electronAPI.createFile(settingsFilePath, settingsContent);
         }
       }
     } catch (err) {
@@ -472,11 +508,25 @@ export function useFileTree(): UseFileTreeReturn {
   }, []);
 
   /**
+   * Rename a file or folder
+   */
+  const renameItem = useCallback(async (oldPath: string, newPath: string): Promise<void> => {
+    try {
+      await window.electronAPI.rename(oldPath, newPath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to rename item';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
+  /**
    * Create a new project with default structure
    * Opens a folder selection dialog and creates:
    * - mod.json at root
-   * - Characters/ folder
-   * - Conversations/ folder
+   * - methods.conf at root
+   * - Characters/ folder with two default characters
+   * - Conversations/ folder with a sample conversation
    * - Images/ folder
    * - Injections/ folder
    */
@@ -508,6 +558,180 @@ export function useFileTree(): UseFileTreeReturn {
           author: '',
         }, null, 2);
         await window.electronAPI.createFile(modJsonPath, modJsonContent);
+      }
+
+      // Create methods.conf with default content
+      const methodsConfPath = `${selectedPath}${separator}methods.conf`;
+      const methodsConfExists = await window.electronAPI.fileExists(methodsConfPath);
+      if (!methodsConfExists) {
+        const methodsConfContent = JSON.stringify({
+          availableMethods: [],
+        }, null, 2);
+        await window.electronAPI.createFile(methodsConfPath, methodsConfContent);
+      }
+
+      // Create prompt library with default components
+      const promptLibraryPath = `${selectedPath}${separator}${PROMPT_LIBRARY_FILENAME}`;
+      const promptLibraryExists = await window.electronAPI.fileExists(promptLibraryPath);
+      if (!promptLibraryExists) {
+        const promptLibraryContent = JSON.stringify(getDefaultLibrary(), null, 2);
+        await window.electronAPI.createFile(promptLibraryPath, promptLibraryContent);
+      }
+
+      // Create default characters
+      const charactersPath = `${selectedPath}${separator}Characters`;
+
+      // Character 1: Player character (main character)
+      const playerJsonPath = `${charactersPath}${separator}player.json`;
+      const playerJsonExists = await window.electronAPI.fileExists(playerJsonPath);
+      if (!playerJsonExists) {
+        const playerJson = JSON.stringify({
+          isMainCharacter: true,
+          contactID: 'player',
+          contactName: 'You',
+          contactNickname: 'Player',
+          contactNicknameShort: 'You',
+          contactLastName: '',
+          profilePicturePath: '',
+          characterColorHex: '#4a90d9',
+          contactDescription: 'This is the player character. Customize this to match your story\'s protagonist.',
+          contactPersonality: 'The player\'s personality is shaped by the choices they make throughout the story.',
+          contactHistory: 'The player\'s history and background. Add details that are relevant to your story.',
+          showContactFromStart: false,
+        }, null, 4);
+        await window.electronAPI.createFile(playerJsonPath, playerJson);
+      }
+
+      const playerConfPath = `${charactersPath}${separator}player.conf`;
+      const playerConfExists = await window.electronAPI.fileExists(playerConfPath);
+      if (!playerConfExists) {
+        const playerConf = JSON.stringify({
+          characterId: 'player',
+          defaultImagePromptSet: 'default',
+          defaultMoodSet: 'neutral',
+          imagePromptSets: [
+            {
+              name: 'default',
+              positive: '1person, portrait, casual clothes, neutral expression',
+              negative: 'bad quality, blurry, deformed',
+            },
+          ],
+          moodSets: [
+            {
+              name: 'neutral',
+              description: 'Calm and collected, responds thoughtfully to situations.',
+            },
+          ],
+        }, null, 2);
+        await window.electronAPI.createFile(playerConfPath, playerConf);
+      }
+
+      // Character 2: Sam (example NPC - shown from start)
+      const samJsonPath = `${charactersPath}${separator}sam.json`;
+      const samJsonExists = await window.electronAPI.fileExists(samJsonPath);
+      if (!samJsonExists) {
+        const samJson = JSON.stringify({
+          isMainCharacter: false,
+          contactID: 'sam',
+          contactName: 'Samantha',
+          contactNickname: 'Sam',
+          contactNicknameShort: 'Sam',
+          contactLastName: 'Chen',
+          profilePicturePath: '',
+          characterColorHex: '#e91e63',
+          contactDescription: 'Sam is a creative soul with a passion for digital art and game design. She\'s always working on some new project and loves to share her latest creations.',
+          contactPersonality: 'Enthusiastic and supportive, with a tendency to get excited about new ideas. She\'s patient when explaining things but can be a bit scatterbrained when she\'s deep in creative mode. Loves puns and making people laugh.',
+          contactHistory: 'We met at a game jam last year. She was the only one who didn\'t laugh at my terrible first attempt at pixel art. Since then, she\'s been teaching me the basics and we\'ve become good friends.',
+          showContactFromStart: true,
+        }, null, 4);
+        await window.electronAPI.createFile(samJsonPath, samJson);
+      }
+
+      const samConfPath = `${charactersPath}${separator}sam.conf`;
+      const samConfExists = await window.electronAPI.fileExists(samConfPath);
+      if (!samConfExists) {
+        const samConf = JSON.stringify({
+          characterId: 'sam',
+          defaultImagePromptSet: 'default',
+          defaultMoodSet: 'cheerful',
+          imagePromptSets: [
+            {
+              name: 'default',
+              positive: '1girl, young woman, asian, black hair, brown eyes, casual artistic outfit, warm smile, creative vibe',
+              negative: 'bad quality, blurry, deformed, extra limbs',
+            },
+          ],
+          moodSets: [
+            {
+              name: 'cheerful',
+              description: 'Upbeat and encouraging, uses lots of exclamation marks and emoji-like expressions. Gets excited easily and loves to hype up others\' work.',
+            },
+            {
+              name: 'focused',
+              description: 'More serious and concentrated, gives thoughtful feedback. Still friendly but less bubbly, more professional.',
+            },
+          ],
+        }, null, 2);
+        await window.electronAPI.createFile(samConfPath, samConf);
+      }
+
+      // Create default conversation
+      const conversationsPath = `${selectedPath}${separator}Conversations`;
+
+      const helloInkPath = `${conversationsPath}${separator}hello.ink`;
+      const helloInkExists = await window.electronAPI.fileExists(helloInkPath);
+      if (!helloInkExists) {
+        const helloInk = `=== start ===
+Hey! I just finished this new piece I've been working on. Want to see it?
++ [Sure, show me!]
+    -> show_art
++ [Maybe later, I'm busy]
+    -> busy_response
+
+=== show_art ===
+*sends image*
+It's a pixel art landscape I made for that game jam we talked about. What do you think?
+I'm still not sure about the color palette though...
++ [It looks amazing!]
+    -> positive_feedback
++ [The colors could use some work]
+    -> constructive_feedback
+
+=== busy_response ===
+Oh okay, no worries! Just message me when you have time.
+I'll be here working on more art anyway haha
+-> END
+
+=== positive_feedback ===
+Aww thanks!! That means a lot coming from you!
+I was really nervous about sharing it but now I feel much better about submitting it.
+You're the best! Talk soon!
+-> END
+
+=== constructive_feedback ===
+Yeah, I had a feeling... The sunset tones aren't quite right, are they?
+Maybe I should try warmer oranges instead of these pinkish ones.
+Thanks for being honest! I'll work on it and show you the updated version later.
+-> END
+`;
+        await window.electronAPI.createFile(helloInkPath, helloInk);
+      }
+
+      const helloSettingsPath = `${conversationsPath}${separator}hello-settings.json`;
+      const helloSettingsExists = await window.electronAPI.fileExists(helloSettingsPath);
+      if (!helloSettingsExists) {
+        const helloSettings = JSON.stringify({
+          storyId: 'hello',
+          contactID: 'sam',
+          nextStoryId: '',
+          isStartingStory: true,
+          forceTimeInHours: 12,
+          passTimeInMinutes: 0,
+          timeIsExact: false,
+          forceDay: 0,
+          isSideStory: false,
+        }, null, 2);
+        await window.electronAPI.createFile(helloSettingsPath, helloSettings);
       }
 
       // Load the folder
@@ -580,6 +804,7 @@ export function useFileTree(): UseFileTreeReturn {
     error,
     selectedNode,
     expandedFolders,
+    collapsedFolders,
     // Actions
     openFolder,
     loadFolder,
@@ -591,6 +816,8 @@ export function useFileTree(): UseFileTreeReturn {
     createFolder,
     importFiles,
     deleteItem,
+    renameItem,
+    setCollapsedFolders,
     createProject,
   };
 }

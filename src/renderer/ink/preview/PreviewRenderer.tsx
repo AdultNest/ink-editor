@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
-import type { KnotContentItem, ChoiceContentItem } from '../parser/inkTypes';
+import type { KnotContentItem, ChoiceContentItem, StitchContentItem } from '../parser/inkTypes';
 import { MediaValidator } from '../parser/mediaValidator';
 import type { PreviewRendererProps } from './types';
 import type { CaretPosition } from '../hooks/useCaretNavigation';
@@ -25,6 +25,21 @@ import { DivertArrow } from './DivertArrow';
 import { ConditionalBlock } from './ConditionalBlock';
 
 import './Preview.css';
+
+/**
+ * Check if a divert target is a stitch reference (contains a dot)
+ */
+function isStitchDivert(target: string): boolean {
+  return target.includes('.');
+}
+
+/**
+ * Extract stitch name from a divert target (e.g., "knot.stitch" -> "stitch")
+ */
+function getStitchName(target: string): string | null {
+  const parts = target.split('.');
+  return parts.length === 2 ? parts[1] : null;
+}
 
 /**
  * Raw content fallback display
@@ -132,20 +147,42 @@ export function PreviewRenderer({
     [mode, caret]
   );
 
+  // Build a map of stitch names to their content items
+  const stitchMap = useMemo(() => {
+    const map = new Map<string, StitchContentItem>();
+    for (const item of items) {
+      if (item.type === 'stitch') {
+        map.set(item.name, item);
+      }
+    }
+    return map;
+  }, [items]);
+
+  // Check if a choice diverts to a stitch and get the stitch content
+  const getStitchForChoice = useCallback((choice: ChoiceContentItem): StitchContentItem | null => {
+    if (!choice.divert || !isStitchDivert(choice.divert)) {
+      return null;
+    }
+    const stitchName = getStitchName(choice.divert);
+    return stitchName ? stitchMap.get(stitchName) || null : null;
+  }, [stitchMap]);
+
   // Group consecutive choices together (for root level display)
-  // But preserve individual choices when they have nested content for tree navigation
+  // But preserve individual choices when they have nested content or divert to stitches
+  // Also filter out standalone stitches (they're rendered as part of choices)
   const groupedItems = useMemo(() => {
     const result: Array<KnotContentItem | { type: 'choice-group'; choices: ChoiceContentItem[] }> = [];
     let currentChoices: ChoiceContentItem[] = [];
 
     const flushChoices = () => {
       if (currentChoices.length > 0) {
-        // If any choice has nested content, don't group them
+        // In edit mode, don't group choices - keep them individual so caret can appear between them
+        // Also don't group if any choice has nested content or diverts to a stitch
         const hasNestedContent = currentChoices.some(
-          (c) => c.nestedContent && c.nestedContent.length > 0
+          (c) => (c.nestedContent && c.nestedContent.length > 0) || getStitchForChoice(c)
         );
-        if (hasNestedContent) {
-          // Add each choice individually to preserve nesting
+        if (mode === 'edit' || hasNestedContent) {
+          // Add each choice individually
           for (const choice of currentChoices) {
             result.push(choice);
           }
@@ -157,10 +194,19 @@ export function PreviewRenderer({
     };
 
     for (const item of items) {
+      if (item.type === 'stitch') {
+        // Stitch is just a marker - show in edit mode only
+        // Content following stitch is already at root level as sibling items
+        flushChoices();
+        if (mode === 'edit') {
+          result.push(item);
+        }
+        continue;
+      }
+
       if (item.type === 'choice') {
-        // If this choice has nested content, flush any accumulated choices first
-        // and add this one individually
-        if (item.nestedContent && item.nestedContent.length > 0) {
+        // If this choice has nested content or diverts to stitch, flush and add individually
+        if ((item.nestedContent && item.nestedContent.length > 0) || getStitchForChoice(item)) {
           flushChoices();
           result.push(item);
         } else {
@@ -174,7 +220,7 @@ export function PreviewRenderer({
 
     flushChoices();
     return result;
-  }, [items]);
+  }, [items, getStitchForChoice, mode]);
 
   // Handle item click
   const handleItemClick = (item: KnotContentItem, index: number) => {
@@ -194,6 +240,7 @@ export function PreviewRenderer({
         text: c.text,
         isSticky: c.isSticky,
         divert: c.divert,
+        label: c.label,
       }));
 
       return (
@@ -351,16 +398,27 @@ export function PreviewRenderer({
         );
 
       case 'choice': {
-        // Individual choice with potential nested content
+        // Individual choice with potential nested content and/or stitch continuation
         const hasNested = item.nestedContent && item.nestedContent.length > 0;
+        const stitchContinuation = getStitchForChoice(item);
+        const hasContinuation = hasNested || stitchContinuation;
+
+        // Determine what divert to show (hide stitch diverts since we show the content)
+        const displayDivert = stitchContinuation ? undefined : item.divert;
+
+        // Check if this is a dangling choice (no divert at all)
+        const isDangling = !item.divert;
+
         return (
-          <div key={item.id} className="choice-with-nested">
+          <div key={item.id} className={`choice-with-nested ${isDangling ? 'choice-with-nested--dangling' : ''}`}>
             <ChoiceGroup
               choices={[
                 {
                   text: item.text,
                   isSticky: item.isSticky,
-                  divert: item.divert,
+                  divert: displayDivert,
+                  label: item.label,
+                  isDangling,
                 },
               ]}
               onChoiceClick={() => handleItemClick(item, originalIndex)}
@@ -380,8 +438,28 @@ export function PreviewRenderer({
                 ))}
               </div>
             )}
+            {/* Stitch divert indicator - shows the choice diverts to a stitch */}
+            {stitchContinuation && (
+              <div
+                className={`stitch-continuation__marker ${mode === 'edit' ? 'stitch-continuation__marker--editable' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Clicking selects the choice to edit its divert
+                  handleItemClick(item, originalIndex);
+                }}
+                title={mode === 'edit' ? 'Click to edit or remove stitch divert' : `Continues to stitch: ${stitchContinuation.name}`}
+              >
+                <span className="stitch-continuation__icon">↓</span>
+                <span className="stitch-continuation__label">
+                  → {item.divert}
+                </span>
+                {mode === 'edit' && (
+                  <span className="stitch-continuation__edit-hint">(click to edit)</span>
+                )}
+              </div>
+            )}
             {/* Show expand indicator if can have nested content but is empty */}
-            {!hasNested && mode === 'edit' && caret?.parentId === item.id && (
+            {!hasContinuation && mode === 'edit' && caret?.parentId === item.id && (
               <div className="nested-content nested-content--empty">
                 <CaretIndicator isNested />
                 <span className="nested-content__hint">Add nested content here</span>
@@ -390,6 +468,25 @@ export function PreviewRenderer({
           </div>
         );
       }
+
+      case 'stitch':
+        // Stitches are rendered as part of choices, not standalone
+        // But show them in edit mode for visibility
+        if (mode === 'edit') {
+          // Render stitch header as a simple marker, content is rendered separately at root level
+          return (
+            <div
+              key={item.id}
+              className="stitch-marker"
+              onClick={() => handleItemClick(item, originalIndex)}
+            >
+              <span className="stitch-marker__icon">=</span>
+              <span className="stitch-marker__name">{item.name}</span>
+            </div>
+          );
+        }
+        // In preview/playback mode, stitches are hidden (rendered via choices)
+        return null;
 
       case 'divert':
         return (

@@ -5,7 +5,7 @@
  * Supports both regular conversation format and injection format.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './JsonEditor.css';
 
 export interface ConversationJsonEditorProps {
@@ -13,6 +13,7 @@ export interface ConversationJsonEditorProps {
   fileName: string;
   /** Default format to use - 'conversation' or 'injection' */
   defaultFormat?: 'conversation' | 'injection';
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 // Regular conversation format
@@ -74,7 +75,7 @@ const DAY_OPTIONS = [
   { value: 7, label: 'Sunday' },
 ];
 
-export function ConversationJsonEditor({ filePath, fileName, defaultFormat }: ConversationJsonEditorProps) {
+export function ConversationJsonEditor({ filePath, fileName, defaultFormat, onDirtyChange }: ConversationJsonEditorProps) {
   const [data, setData] = useState<ConversationData>(DEFAULT_CONVERSATION);
   const [originalData, setOriginalData] = useState<ConversationData>(DEFAULT_CONVERSATION);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +84,17 @@ export function ConversationJsonEditor({ filePath, fileName, defaultFormat }: Co
   const [format, setFormat] = useState<'conversation' | 'injection'>(defaultFormat || 'conversation');
 
   const isDirty = JSON.stringify(data) !== JSON.stringify(originalData);
+
+  // Notify parent of dirty state changes (use ref to avoid infinite loops)
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  const prevDirtyRef = useRef(isDirty);
+  useEffect(() => {
+    if (prevDirtyRef.current !== isDirty) {
+      prevDirtyRef.current = isDirty;
+      onDirtyChangeRef.current?.(isDirty);
+    }
+  }, [isDirty]);
 
   // Load file
   useEffect(() => {

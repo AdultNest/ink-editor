@@ -21,6 +21,7 @@ import type {
   DivertContentItem,
   ConditionalContentItem,
   RawContentItem,
+  StitchContentItem,
   NodePosition,
 } from './inkTypes';
 
@@ -90,6 +91,8 @@ function serializeItem(item: KnotContentItem, indent = ''): string[] {
       return serializeConditionalItem(item, indent);
     case 'raw':
       return serializeRawItem(item, indent);
+    case 'stitch':
+      return serializeStitchItem(item, indent);
     default:
       return [];
   }
@@ -205,6 +208,20 @@ function serializeRawItem(item: RawContentItem, indent: string): string[] {
   return [`${indent}${item.content}`];
 }
 
+function serializeStitchItem(item: StitchContentItem, indent: string): string[] {
+  const lines: string[] = [];
+
+  // Stitch header
+  lines.push(`${indent}= ${item.name}`);
+
+  // Stitch content
+  for (const contentItem of item.content) {
+    lines.push(...serializeItem(contentItem, indent));
+  }
+
+  return lines;
+}
+
 /**
  * Serialize items with validation
  * Returns errors if items have issues
@@ -255,10 +272,18 @@ function validateItem(item: KnotContentItem): string[] {
       if (!item.text) {
         errors.push('Choice item is missing text');
       }
+      if (!item.divert) {
+        errors.push('Choice must have a divert target (dangling choice)');
+      }
       break;
     case 'divert':
       if (!item.target) {
         errors.push('Divert item is missing target');
+      }
+      break;
+    case 'stitch':
+      if (!item.name) {
+        errors.push('Stitch item is missing name');
       }
       break;
   }

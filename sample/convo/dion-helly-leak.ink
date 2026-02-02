@@ -8,12 +8,12 @@ EXTERNAL ShowCustomTransition(transitionSubtitle, transitionTitle)
 
 == start
 Dion!!
+<wait-2>
+<ai_generated_1770026008399>
 <wait-1>
 You idiot!!
-
-* Yeah Mason told me
+* [Yeah Mason told me]
 -> masontoldme
-
 == masontoldme
 * I am so sorry, I honestly did NOT know
     How can I trust you ever again?

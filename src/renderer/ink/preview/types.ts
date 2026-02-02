@@ -101,6 +101,10 @@ export interface ChoiceGroupProps {
     text: string;
     isSticky: boolean;
     divert?: string;
+    /** Optional explicit label (displayed as main choice text) */
+    label?: string;
+    /** Whether this choice is dangling (no divert target) */
+    isDangling?: boolean;
   }>;
   /** Callback when a choice is clicked */
   onChoiceClick?: (index: number) => void;

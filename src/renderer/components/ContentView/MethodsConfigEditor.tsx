@@ -1,11 +1,11 @@
 /**
  * MethodsConfigEditor component
  *
- * Editor for methods.conf.json files that displays available external methods
+ * Editor for methods.conf files that displays available external methods
  * with reference counts showing how many times each method is used across ink files.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './MethodsConfigEditor.css';
 
 export interface AvailableMethod {
@@ -22,15 +22,27 @@ interface MethodWithRefs extends AvailableMethod {
 export interface MethodsConfigEditorProps {
   filePath: string;
   fileName: string;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export function MethodsConfigEditor({ filePath, fileName }: MethodsConfigEditorProps) {
+export function MethodsConfigEditor({ filePath, fileName, onDirtyChange }: MethodsConfigEditorProps) {
   const [methods, setMethods] = useState<AvailableMethod[]>([]);
   const [methodsWithRefs, setMethodsWithRefs] = useState<MethodWithRefs[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Notify parent of dirty state changes (use ref to avoid infinite loops)
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  const prevDirtyRef = useRef(isDirty);
+  useEffect(() => {
+    if (prevDirtyRef.current !== isDirty) {
+      prevDirtyRef.current = isDirty;
+      onDirtyChangeRef.current?.(isDirty);
+    }
+  }, [isDirty]);
 
   // New method dialog state
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -70,7 +82,7 @@ export function MethodsConfigEditor({ filePath, fileName }: MethodsConfigEditorP
       }
 
       try {
-        // Get the project root (parent directory of methods.conf.json)
+        // Get the project root (parent directory of methods.conf)
         const pathSeparator = filePath.includes('\\') ? '\\' : '/';
         const pathParts = filePath.split(pathSeparator);
         const projectRoot = pathParts.slice(0, -1).join(pathSeparator);

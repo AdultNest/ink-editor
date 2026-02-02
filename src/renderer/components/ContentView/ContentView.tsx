@@ -23,7 +23,10 @@ import ModJsonEditor from './ModJsonEditor';
 import CharacterJsonEditor from './CharacterJsonEditor';
 import ConversationJsonEditor from './ConversationJsonEditor';
 import MethodsConfigEditor from './MethodsConfigEditor';
+import CharacterConfigEditor from './CharacterConfigEditor';
+import PromptLibraryEditor from './PromptLibraryEditor';
 import { InkEditor, type InkEditorHandle } from '../../ink';
+import type { AppSettings } from '../../../preload';
 import './ContentView.css';
 
 export interface ContentViewProps {
@@ -31,6 +34,8 @@ export interface ContentViewProps {
   activeTab: TabData | undefined;
   /** Callback when the active editor's dirty state changes */
   onDirtyChange?: (isDirty: boolean) => void;
+  /** Application settings for AI features */
+  appSettings?: AppSettings;
 }
 
 /** Handle exposed by ContentView for parent components */
@@ -88,23 +93,33 @@ function isInInjectionsFolder(filePath: string): boolean {
 }
 
 /**
- * Gets the .ink neighbor path for a JSON file
+ * Checks if a JSON file is a settings file (ends with -settings.json)
  */
-function getInkNeighborPath(jsonFilePath: string): string {
-  // Replace .json extension with .ink
-  return jsonFilePath.replace(/\.json$/i, '.ink');
+function isSettingsFile(filePath: string): boolean {
+  return filePath.toLowerCase().endsWith('-settings.json');
+}
+
+/**
+ * Gets the .ink neighbor path for a settings JSON file
+ * e.g., conversation-settings.json -> conversation.ink
+ */
+function getInkPathFromSettings(settingsFilePath: string): string {
+  return settingsFilePath.replace(/-settings\.json$/i, '.ink');
 }
 
 /**
  * Determines the content type for a file
  */
-type ContentType = 'ink' | 'image' | 'video' | 'audio' | 'json' | 'text';
+type ContentType = 'ink' | 'image' | 'video' | 'audio' | 'json' | 'conf' | 'text';
 
 function getContentType(filePath: string): ContentType {
   const extension = getExtension(filePath);
 
   if (extension === '.ink') {
     return 'ink';
+  }
+  if (extension === '.conf') {
+    return 'conf';
   }
   if (extension === '.json') {
     return 'json';
@@ -124,7 +139,7 @@ function getContentType(filePath: string): ContentType {
 /**
  * JSON editor type
  */
-type JsonEditorType = 'generic' | 'mod' | 'character' | 'conversation' | 'injection' | 'methods';
+type JsonEditorType = 'generic' | 'mod' | 'character' | 'conversation' | 'injection' | 'prompt-library';
 
 /**
  * Determines which JSON editor to use
@@ -132,9 +147,9 @@ type JsonEditorType = 'generic' | 'mod' | 'character' | 'conversation' | 'inject
 async function determineJsonEditorType(filePath: string): Promise<JsonEditorType> {
   const fileName = getFileName(filePath).toLowerCase();
 
-  // Check for methods.conf.json
-  if (fileName === 'methods.conf.json') {
-    return 'methods';
+  // Check for prompt library
+  if (fileName === '.prompt-library.json') {
+    return 'prompt-library';
   }
 
   // Check for mod.json
@@ -142,21 +157,23 @@ async function determineJsonEditorType(filePath: string): Promise<JsonEditorType
     return 'mod';
   }
 
-  // Check for character files (in characters folder)
-  if (isInCharactersFolder(filePath)) {
+  // Check for character files (in characters folder, but not .conf files)
+  if (isInCharactersFolder(filePath) && !fileName.endsWith('.conf')) {
     return 'character';
   }
 
-  // Check for conversation/injection files (has neighboring .ink file with same name)
-  const inkPath = getInkNeighborPath(filePath);
-  const inkExists = await window.electronAPI.fileExists(inkPath);
-  if (inkExists) {
-    // If in Injections folder, use injection format
-    if (isInInjectionsFolder(filePath)) {
-      return 'injection';
+  // Check for settings files (name-settings.json paired with name.ink)
+  if (isSettingsFile(filePath)) {
+    const inkPath = getInkPathFromSettings(filePath);
+    const inkExists = await window.electronAPI.fileExists(inkPath);
+    if (inkExists) {
+      // If in Injections folder, use injection format
+      if (isInInjectionsFolder(filePath)) {
+        return 'injection';
+      }
+      // Otherwise use regular conversation format
+      return 'conversation';
     }
-    // Otherwise use regular conversation format
-    return 'conversation';
   }
 
   return 'generic';
@@ -166,7 +183,7 @@ async function determineJsonEditorType(filePath: string): Promise<JsonEditorType
  * ContentView renders the appropriate content based on the active tab
  */
 export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(function ContentView(
-  { activeTab, onDirtyChange },
+  { activeTab, onDirtyChange, appSettings },
   ref
 ) {
   const [jsonEditorType, setJsonEditorType] = useState<JsonEditorType>('generic');
@@ -256,6 +273,7 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
           filePath={activeTab.filePath}
           fileName={activeTab.fileName}
           onDirtyChange={handleDirtyChange}
+          appSettings={appSettings}
         />
       );
 
@@ -283,6 +301,25 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
         />
       );
 
+    case 'conf':
+      // methods.conf uses MethodsConfigEditor, others use CharacterConfigEditor
+      if (activeTab.fileName.toLowerCase() === 'methods.conf') {
+        return (
+          <MethodsConfigEditor
+            filePath={activeTab.filePath}
+            fileName={activeTab.fileName}
+            onDirtyChange={handleDirtyChange}
+          />
+        );
+      }
+      return (
+        <CharacterConfigEditor
+          filePath={activeTab.filePath}
+          fileName={activeTab.fileName}
+          onDirtyChange={handleDirtyChange}
+        />
+      );
+
     case 'json':
       if (isCheckingJsonType) {
         return (
@@ -294,11 +331,12 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
       }
 
       switch (jsonEditorType) {
-        case 'methods':
+        case 'prompt-library':
           return (
-            <MethodsConfigEditor
+            <PromptLibraryEditor
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
+              onDirtyChange={handleDirtyChange}
             />
           );
         case 'mod':
@@ -306,6 +344,7 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
             <ModJsonEditor
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
+              onDirtyChange={handleDirtyChange}
             />
           );
         case 'character':
@@ -313,6 +352,8 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
             <CharacterJsonEditor
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
+              appSettings={appSettings}
+              onDirtyChange={handleDirtyChange}
             />
           );
         case 'conversation':
@@ -321,6 +362,7 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
               defaultFormat="conversation"
+              onDirtyChange={handleDirtyChange}
             />
           );
         case 'injection':
@@ -329,6 +371,7 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
               defaultFormat="injection"
+              onDirtyChange={handleDirtyChange}
             />
           );
         default:
@@ -336,6 +379,7 @@ export const ContentView = forwardRef<ContentViewHandle, ContentViewProps>(funct
             <JsonEditor
               filePath={activeTab.filePath}
               fileName={activeTab.fileName}
+              onDirtyChange={handleDirtyChange}
             />
           );
       }

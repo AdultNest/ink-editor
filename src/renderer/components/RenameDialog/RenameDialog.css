@@ -1,0 +1,264 @@
+/**
+ * RenameDialog styles
+ *
+ * VS Code-inspired dark theme styling for the rename dialog.
+ */
+
+.rename-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.rename-dialog {
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 20px 24px;
+  min-width: 400px;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rename-dialog__title {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #cccccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Input section */
+.rename-dialog__input-section {
+  margin-bottom: 16px;
+}
+
+.rename-dialog__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #9d9d9d;
+}
+
+.rename-dialog__input {
+  width: 100%;
+  padding: 8px 10px;
+  background-color: #3c3c3c;
+  border: 1px solid #454545;
+  border-radius: 3px;
+  color: #cccccc;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.rename-dialog__input:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.rename-dialog__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Error message */
+.rename-dialog__error {
+  padding: 8px 12px;
+  background-color: rgba(197, 48, 48, 0.2);
+  border: 1px solid #c53030;
+  border-radius: 3px;
+  color: #fc8181;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+/* Search section */
+.rename-dialog__search-section {
+  margin-bottom: 16px;
+}
+
+.rename-dialog__info {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #9d9d9d;
+  line-height: 1.5;
+}
+
+/* References section */
+.rename-dialog__references-section {
+  margin-bottom: 16px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rename-dialog__no-refs {
+  margin: 0;
+  font-size: 13px;
+  color: #6a9955;
+}
+
+.rename-dialog__refs-info {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: #9d9d9d;
+}
+
+.rename-dialog__references-list {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+  border: 1px solid #3c3c3c;
+  border-radius: 3px;
+  background-color: #1e1e1e;
+}
+
+/* File group */
+.rename-dialog__file-group {
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.rename-dialog__file-group:last-child {
+  border-bottom: none;
+}
+
+.rename-dialog__file-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #2d2d2d;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rename-dialog__file-header:hover {
+  background-color: #333333;
+}
+
+.rename-dialog__file-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #cccccc;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rename-dialog__ref-count {
+  font-size: 11px;
+  color: #858585;
+}
+
+/* Reference items */
+.rename-dialog__ref-items {
+  padding: 4px 0;
+}
+
+.rename-dialog__ref-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 28px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rename-dialog__ref-item:hover {
+  background-color: #2a2d2e;
+}
+
+.rename-dialog__line-number {
+  font-size: 12px;
+  color: #858585;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.rename-dialog__line-content {
+  font-size: 12px;
+  color: #9d9d9d;
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Checkbox */
+.rename-dialog__checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #007acc;
+  flex-shrink: 0;
+}
+
+/* Action buttons */
+.rename-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rename-dialog__button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.rename-dialog__button:focus {
+  outline: 2px solid #007acc;
+  outline-offset: 1px;
+}
+
+.rename-dialog__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rename-dialog__button--cancel {
+  background-color: #3c3c3c;
+  color: #cccccc;
+}
+
+.rename-dialog__button--cancel:hover:not(:disabled) {
+  background-color: #505050;
+}
+
+.rename-dialog__button--search {
+  background-color: #0e639c;
+  color: #ffffff;
+}
+
+.rename-dialog__button--search:hover:not(:disabled) {
+  background-color: #1177bb;
+}
+
+.rename-dialog__button--confirm {
+  background-color: #0e639c;
+  color: #ffffff;
+}
+
+.rename-dialog__button--confirm:hover:not(:disabled) {
+  background-color: #1177bb;
+}

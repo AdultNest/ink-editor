@@ -299,6 +299,13 @@ function TabBar({
             ref={tab.id === activeTabId ? activeTabRef : undefined}
             className="tab-bar__tab-wrapper"
             onContextMenu={(e) => handleTabContextMenu(e, tab)}
+            onAuxClick={(e) => {
+              // Middle mouse button (button 1) closes the tab
+              if (e.button === 1 && !tab.isPinned) {
+                e.preventDefault();
+                handleTabClose(tab.id);
+              }
+            }}
           >
             <Tab
               tab={tab}

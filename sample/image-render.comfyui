@@ -1,0 +1,443 @@
+{
+  "117": {
+    "inputs": {
+      "text": "{{negative_prompt}}",
+      "clip": [
+        "118",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "118": {
+    "inputs": {
+      "ckpt_name": "{{checkpoint}}"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "119": {
+    "inputs": {
+      "width": "{{width}}",
+      "height": "{{height}}",
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "125": {
+    "inputs": {
+      "text": "{{prompt}}",
+      "clip": [
+        "118",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Actual Prompt"
+    }
+  },
+  "138": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "scale_by": 1.25,
+      "samples": [
+        "194",
+        0
+      ]
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
+    }
+  },
+  "139": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "scale_by": 1.3,
+      "samples": [
+        "156",
+        0
+      ]
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
+    }
+  },
+  "140": {
+    "inputs": {
+      "samples": [
+        "156",
+        0
+      ],
+      "vae": [
+        "118",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "141": {
+    "inputs": {
+      "images": [
+        "140",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "142": {
+    "inputs": {
+      "images": [
+        "143",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "143": {
+    "inputs": {
+      "samples": [
+        "147",
+        0
+      ],
+      "vae": [
+        "118",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "144": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "scale_by": 1.3,
+      "samples": [
+        "147",
+        0
+      ]
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
+    }
+  },
+  "145": {
+    "inputs": {
+      "images": [
+        "146",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "146": {
+    "inputs": {
+      "samples": [
+        "150",
+        0
+      ],
+      "vae": [
+        "118",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "147": {
+    "inputs": {
+      "seed": [
+        "191",
+        0
+      ],
+      "steps": [
+        "192",
+        0
+      ],
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.6,
+      "model": [
+        "118",
+        0
+      ],
+      "positive": [
+        "125",
+        0
+      ],
+      "negative": [
+        "117",
+        0
+      ],
+      "latent_image": [
+        "139",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "150": {
+    "inputs": {
+      "seed": [
+        "191",
+        0
+      ],
+      "steps": [
+        "192",
+        0
+      ],
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.6,
+      "model": [
+        "118",
+        0
+      ],
+      "positive": [
+        "125",
+        0
+      ],
+      "negative": [
+        "117",
+        0
+      ],
+      "latent_image": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "156": {
+    "inputs": {
+      "seed": [
+        "191",
+        0
+      ],
+      "steps": [
+        "192",
+        0
+      ],
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.7,
+      "model": [
+        "118",
+        0
+      ],
+      "positive": [
+        "125",
+        0
+      ],
+      "negative": [
+        "117",
+        0
+      ],
+      "latent_image": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "163": {
+    "inputs": {
+      "samples": [
+        "193",
+        0
+      ],
+      "vae": [
+        "118",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "164": {
+    "inputs": {
+      "filename_prefix": "ink_editor",
+      "images": [
+        "163",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "167": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "scale_by": 1.2,
+      "samples": [
+        "150",
+        0
+      ]
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
+    }
+  },
+  "169": {
+    "inputs": {
+      "images": [
+        "190",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "190": {
+    "inputs": {
+      "samples": [
+        "194",
+        0
+      ],
+      "vae": [
+        "118",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "191": {
+    "inputs": {
+      "value": "{{seed}}"
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Seed"
+    }
+  },
+  "192": {
+    "inputs": {
+      "value": "{{steps}}"
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Steps"
+    }
+  },
+  "193": {
+    "inputs": {
+      "seed": [
+        "191",
+        0
+      ],
+      "steps": [
+        "192",
+        0
+      ],
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 0.6,
+      "model": [
+        "118",
+        0
+      ],
+      "positive": [
+        "125",
+        0
+      ],
+      "negative": [
+        "117",
+        0
+      ],
+      "latent_image": [
+        "167",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "194": {
+    "inputs": {
+      "seed": [
+        "191",
+        0
+      ],
+      "steps": [
+        "192",
+        0
+      ],
+      "cfg": 7,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "118",
+        0
+      ],
+      "positive": [
+        "125",
+        0
+      ],
+      "negative": [
+        "117",
+        0
+      ],
+      "latent_image": [
+        "119",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  }
+}
