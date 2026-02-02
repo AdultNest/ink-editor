@@ -165,6 +165,7 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           generate_release_notes: true
+          fail_on_unmatched_files: false
           files: |
             artifacts/**/*.exe
             artifacts/**/*.msi
@@ -172,6 +173,7 @@ jobs:
             artifacts/**/*.zip
             artifacts/**/*.deb
             artifacts/**/*.rpm
+            artifacts/**/*.nupkg
             artifacts/**/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
