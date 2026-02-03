@@ -69,6 +69,8 @@ export interface FileTreeProps {
   onDelete?: (path: string) => void | Promise<void>;
   /** Callback when a file/folder rename is requested */
   onRename?: (path: string, name: string) => void;
+  /** Callback when a file/folder is moved via drag and drop */
+  onMove?: (sourcePath: string, targetFolderPath: string) => void | Promise<void>;
   /** Callback to show file/folder in system file explorer */
   onShowInExplorer?: (path: string) => void | Promise<void>;
   /** Width of the tree (for virtualization) */
@@ -104,6 +106,7 @@ function FileTree({
   onImportFiles,
   onDelete,
   onRename,
+  onMove,
   onShowInExplorer,
   width = 300,
   height = 600,
@@ -337,6 +340,70 @@ function FileTree({
   }, [contextMenu, onShowInExplorer, closeContextMenu]);
 
   /**
+   * Handle drag and drop move operation
+   * react-arborist provides the dragIds, parentId, and index
+   */
+  const handleMove = useCallback(
+    async (args: { dragIds: string[]; parentId: string | null; index: number }) => {
+      if (!onMove) return;
+
+      const { dragIds, parentId } = args;
+
+      // Get the target folder path
+      // If parentId is null, we're dropping at root level
+      const targetFolderPath = parentId || rootPath;
+      if (!targetFolderPath) return;
+
+      // Move each dragged item
+      for (const sourcePath of dragIds) {
+        try {
+          await onMove(sourcePath, targetFolderPath);
+        } catch (err) {
+          // Error is already handled in the move function
+          console.error('Failed to move:', sourcePath, err);
+        }
+      }
+    },
+    [onMove, rootPath]
+  );
+
+  /**
+   * Determine if a node can be dropped on another
+   * Only allow dropping on directories
+   */
+  const disableDrop = useCallback(
+    (args: { parentNode: NodeApi<FileTreeNodeType> | null; dragNodes: NodeApi<FileTreeNodeType>[]; index: number }): boolean => {
+      const { parentNode, dragNodes } = args;
+
+      // Allow dropping at root level (parentNode is null)
+      if (parentNode === null) {
+        return false; // false means drop is allowed
+      }
+
+      // Only allow dropping on directories
+      if (!parentNode.data.data.isDirectory) {
+        return true; // true means drop is disabled
+      }
+
+      // Prevent dropping a folder onto itself or its descendants
+      for (const dragNode of dragNodes) {
+        if (dragNode.data.data.isDirectory) {
+          // Check if target is the same as source or a descendant of source
+          const dragPath = dragNode.data.data.path.replace(/\\/g, '/').toLowerCase();
+          const targetPath = parentNode.data.data.path.replace(/\\/g, '/').toLowerCase();
+
+          if (targetPath === dragPath || targetPath.startsWith(dragPath + '/')) {
+            return true; // Disable drop
+          }
+        }
+      }
+
+      return false; // Allow drop
+    },
+    []
+  );
+
+  /**
    * Handle input submission for new file/folder
    */
   const handleInputSubmit = useCallback(async () => {
@@ -485,10 +552,11 @@ function FileTree({
         onSelect={handleSelect}
         onActivate={handleActivate}
         onToggle={handleToggle}
+        onMove={onMove ? handleMove : undefined}
         openByDefault={true}
         initialOpenState={initialOpenState}
-        disableDrag
-        disableDrop
+        disableDrag={!onMove}
+        disableDrop={onMove ? disableDrop : true}
       >
         {(props) => (
           <FileTreeNode

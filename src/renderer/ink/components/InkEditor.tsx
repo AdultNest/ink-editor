@@ -16,8 +16,10 @@ import InkRawEditor from './InkRawEditor';
 import InkNodeDetail from './InkNodeDetail';
 import FlagsPanel from './FlagsPanel';
 import ImportsPanel, { type AvailableMethod } from './ImportsPanel';
+import HistoryPanel from './HistoryPanel';
 import LayoutMenu from './LayoutMenu';
 import ConversationPanel from './ConversationPanel';
+import { conversationService, type ConversationState } from '../ai/conversationService';
 import type { AppSettings } from '../../../preload';
 import {
   loadConversationMeta,
@@ -63,6 +65,11 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
     isSaving,
     nodes,
     edges,
+    // History
+    canUndo,
+    canRedo,
+    historyTreeView,
+    currentHistoryNodeId,
     setViewMode,
     setSelectedKnotId,
     setRawContent,
@@ -79,7 +86,13 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
     renameKnotAction,
     renameRegionAction,
     applyLayout,
-  } = useInkEditor(filePath);
+    // History actions
+    undo,
+    redo,
+    jumpToHistory,
+  } = useInkEditor(filePath, {
+    maxHistoryLength: appSettings?.editor?.maxHistoryLength,
+  });
 
   // Expose save and isDirty to parent via ref
   useImperativeHandle(ref, () => ({
@@ -114,8 +127,65 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
   const [showImportsPanel, setShowImportsPanel] = useState(false);
   const [availableMethods, setAvailableMethods] = useState<AvailableMethod[]>([]);
 
+  // History panel state
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+
   // AI Conversation panel state
   const [showConversationPanel, setShowConversationPanel] = useState(false);
+  const [conversationStatus, setConversationStatus] = useState<ConversationState['status']>('idle');
+  const [continueFromKnot, setContinueFromKnot] = useState<{ name: string; content: string } | null>(null);
+
+  // Handle opening AI panel from knot detail with "continue from" context
+  const handleOpenAIPanel = useCallback((knotName: string, knotContent: string) => {
+    setContinueFromKnot({ name: knotName, content: knotContent });
+    setShowConversationPanel(true);
+  }, []);
+
+  // Clear continue-from context after it's been consumed
+  const handleContinueFromConsumed = useCallback(() => {
+    setContinueFromKnot(null);
+  }, []);
+
+  // Subscribe to conversation service state changes
+  useEffect(() => {
+    const unsubscribe = conversationService.subscribe((state) => {
+      setConversationStatus(state.status);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Subscribe to content changes from AI assistant
+  // When AI modifies the file, update the editor content (without writing to disk)
+  useEffect(() => {
+    const unsubscribe = conversationService.subscribeToContentChanges((changedFilePath, content) => {
+      // Only update if this is the file we're editing
+      if (changedFilePath === filePath) {
+        console.log('[InkEditor] Received content change from AI, updating editor');
+        setRawContent(content);
+      }
+    });
+    return unsubscribe;
+  }, [filePath, setRawContent]);
+
+  // Respond to content requests from AI assistant
+  // When AI needs to read the current content, provide it from the editor (not disk)
+  // Use a ref to always have access to the latest rawContent without re-subscribing
+  const rawContentRef = useRef(rawContent);
+  rawContentRef.current = rawContent;
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onConversationContentRequest((requestId, requestedFilePath) => {
+      // Only respond if this is the file we're editing
+      if (requestedFilePath === filePath) {
+        console.log('[InkEditor] Responding to content request from AI');
+        window.electronAPI.respondToContentRequest(requestId, rawContentRef.current);
+      } else {
+        // Not our file - respond with null so it falls back to disk
+        window.electronAPI.respondToContentRequest(requestId, null);
+      }
+    });
+    return unsubscribe;
+  }, [filePath]);
 
   // Prompt library state
   const [promptLibrary, setPromptLibrary] = useState<ProjectPromptLibrary | null>(null);
@@ -551,6 +621,17 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
             </button>
           )}
 
+          {/* History panel toggle (graph mode only) */}
+          {viewMode === 'graph' && (
+            <button
+              className={`ink-btn ink-btn-history ${showHistoryPanel ? 'active' : ''}`}
+              onClick={() => setShowHistoryPanel(!showHistoryPanel)}
+              title={`History (${historyTreeView.length})`}
+            >
+              History {historyTreeView.length > 1 && <span className="ink-history-count">{historyTreeView.length}</span>}
+            </button>
+          )}
+
           {/* Error/warning badge */}
           {(errorCount > 0 || warningCount > 0) && (
             <button
@@ -599,11 +680,17 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
           {/* AI Assistant button (multi-turn conversation) */}
           {isAIAvailable && (
             <button
-              className="ink-btn ink-btn-ai"
+              className={`ink-btn ink-btn-ai ${conversationStatus !== 'idle' ? 'ink-btn-ai-active' : ''}`}
               onClick={() => setShowConversationPanel(true)}
-              title="AI Assistant (multi-turn conversation, requires Ollama)"
+              title={conversationStatus !== 'idle' ? 'AI Assistant (session active)' : 'AI Assistant (multi-turn conversation)'}
             >
               AI Assistant
+              {(conversationStatus === 'thinking' || conversationStatus === 'executing_tools') && (
+                <span className="ink-ai-indicator ink-ai-indicator-working" />
+              )}
+              {conversationStatus === 'active' && (
+                <span className="ink-ai-indicator ink-ai-indicator-active" />
+              )}
             </button>
           )}
 
@@ -645,7 +732,7 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
       {/* Main content area */}
       <div className="ink-editor-content">
         {viewMode === 'graph' ? (
-          <div className={`ink-graph-layout ${showFlagsPanel ? 'with-flags-panel' : ''} ${showImportsPanel ? 'with-imports-panel' : ''}`}>
+          <div className={`ink-graph-layout ${showFlagsPanel ? 'with-flags-panel' : ''} ${showImportsPanel ? 'with-imports-panel' : ''} ${showHistoryPanel ? 'with-history-panel' : ''}`}>
             {/* Imports sidebar (left side, before flags) */}
             {showImportsPanel && (
               <div className="ink-imports-sidebar">
@@ -679,6 +766,17 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
                       focusNodeRef.current?.(knot.name);
                     }
                   }}
+                />
+              </div>
+            )}
+
+            {/* History sidebar (left side) */}
+            {showHistoryPanel && (
+              <div className="ink-history-sidebar">
+                <HistoryPanel
+                  treeView={historyTreeView}
+                  currentId={currentHistoryNodeId}
+                  onNodeClick={jumpToHistory}
                 />
               </div>
             )}
@@ -721,6 +819,7 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
                   mainCharacterConfig={mainCharacterConfig}
                   promptLibrary={promptLibrary}
                   onAIGenerate={handleGeneratedContent}
+                  onOpenAIPanel={handleOpenAIPanel}
                 />
               </div>
             )}
@@ -853,6 +952,8 @@ export const InkEditor = forwardRef<InkEditorHandle, InkEditorProps>(function In
           inkFilePath={filePath}
           characterConfig={characterConfig}
           promptLibrary={promptLibrary}
+          continueFromKnot={continueFromKnot}
+          onContinueFromConsumed={handleContinueFromConsumed}
         />
       )}
     </div>

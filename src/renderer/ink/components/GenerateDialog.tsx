@@ -5,7 +5,7 @@
  * For continuing from existing nodes, use the AI tab in the node detail panel.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { AppSettings } from '../../../preload';
 import {
   buildNewConversationPrompt,
@@ -15,6 +15,12 @@ import {
 } from '../ai';
 import type { CharacterAIConfig } from '../ai/characterConfig';
 import { buildSystemPromptWithMood } from '../ai/characterConfig';
+import {
+  type ProjectPromptLibrary,
+  PromptComponentCategory,
+  promptLibraryService,
+  getDefaultLibrary,
+} from '../../../renderer/services';
 import './GenerateDialog.css';
 
 export interface GenerateDialogProps {
@@ -24,6 +30,8 @@ export interface GenerateDialogProps {
   settings: AppSettings;
   /** Character AI configuration for generation */
   characterConfig?: CharacterAIConfig | null;
+  /** Project path for loading prompt library */
+  projectPath?: string;
   /** Callback when content is generated */
   onGenerate: (inkContent: string) => void;
   /** Callback when dialog is closed */
@@ -34,6 +42,7 @@ export function GenerateDialog({
   isOpen,
   settings,
   characterConfig,
+  projectPath,
   onGenerate,
   onClose,
 }: GenerateDialogProps) {
@@ -44,8 +53,23 @@ export function GenerateDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [promptLibrary, setPromptLibrary] = useState<ProjectPromptLibrary>(getDefaultLibrary());
 
-  const hasMoods = characterConfig && characterConfig.moodSets.length > 0;
+  // Load prompt library
+  useEffect(() => {
+    if (projectPath && isOpen) {
+      promptLibraryService.loadLibrary(projectPath)
+        .then(lib => setPromptLibrary(lib))
+        .catch(() => setPromptLibrary(getDefaultLibrary()));
+    }
+  }, [projectPath, isOpen]);
+
+  // Get available moods from library
+  const availableMoods = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(promptLibrary, PromptComponentCategory.MOOD);
+  }, [promptLibrary]);
+
+  const hasMoods = availableMoods.length > 0;
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -126,10 +150,10 @@ export function GenerateDialog({
         sceneSetting: sceneSetting || undefined,
       });
 
-      // Enhance system prompt with character mood if available
+      // Enhance system prompt with mood from library if available
       const systemPrompt = buildSystemPromptWithMood(
         baseSystemPrompt,
-        characterConfig || null,
+        promptLibrary,
         selectedMood || undefined
       );
 
@@ -179,7 +203,7 @@ export function GenerateDialog({
     } finally {
       setIsGenerating(false);
     }
-  }, [prompt, settings, characterName, sceneSetting, characterConfig, selectedMood]);
+  }, [prompt, settings, characterName, sceneSetting, promptLibrary, selectedMood]);
 
   // Insert generated content
   const handleInsert = useCallback(() => {
@@ -234,6 +258,21 @@ export function GenerateDialog({
               onChange={(e) => setSceneSetting(e.target.value)}
               placeholder="Scene/setting (optional)"
             />
+            {hasMoods && (
+              <select
+                className="generate-dialog__input"
+                value={selectedMood}
+                onChange={(e) => setSelectedMood(e.target.value)}
+                title={selectedMood ? promptLibraryService.getMoodDescription(promptLibrary, selectedMood) || '' : ''}
+              >
+                <option value="">Mood (optional)</option>
+                {availableMoods.map((mood) => (
+                  <option key={mood.id} value={mood.id}>
+                    {mood.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Prompt input */}

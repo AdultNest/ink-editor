@@ -17,7 +17,7 @@ import {
   promptBuilder,
   getDefaultLibrary,
 } from '../../services';
-import type { CharacterAIConfig, ImagePromptSet, MoodSet } from '../../ink/ai/characterConfig';
+import type { CharacterAIConfig } from '../../ink/ai/characterConfig';
 import { ComponentPicker } from './ComponentPicker';
 import './PromptComposerDialog.css';
 
@@ -65,6 +65,8 @@ export function PromptComposerDialog({
     [PromptComponentCategory.CLOTHING]: null,
     [PromptComponentCategory.ACTION]: null,
     [PromptComponentCategory.TIME_WEATHER]: null,
+    [PromptComponentCategory.IMAGE_STYLE]: null,
+    [PromptComponentCategory.MOOD]: null,
   });
   const [customPositive, setCustomPositive] = useState('');
   const [customNegative, setCustomNegative] = useState('');
@@ -72,15 +74,20 @@ export function PromptComposerDialog({
   const [selectedPromptSet, setSelectedPromptSet] = useState<string>('');
   const [selectedMoodSet, setSelectedMoodSet] = useState<string>('');
 
-  // Get available prompt sets and mood sets from character config
-  const imagePromptSets = characterConfig?.imagePromptSets || [];
-  const moodSets = characterConfig?.moodSets || [];
+  // Get available image styles and moods from library
+  const imageStyles = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(library, PromptComponentCategory.IMAGE_STYLE);
+  }, [library]);
+
+  const moodComponents = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(library, PromptComponentCategory.MOOD);
+  }, [library]);
 
   // Initialize defaults when dialog opens
   useEffect(() => {
     if (isOpen && characterConfig) {
-      setSelectedPromptSet(characterConfig.defaultImagePromptSet || '');
-      setSelectedMoodSet(characterConfig.defaultMoodSet || '');
+      setSelectedPromptSet(characterConfig.defaultImageStyleId || '');
+      setSelectedMoodSet(characterConfig.defaultMoodId || '');
     }
   }, [isOpen, characterConfig]);
 
@@ -109,26 +116,27 @@ export function PromptComposerDialog({
       basePrompt = promptBuilder.buildRegionalPromptWithRegions(appearance, Array.from(enabledRegions));
     }
 
-    // Add selected image prompt set from character config
+    // Add selected image style from library
     let promptSetPrompt: GeneratedPrompt = { positive: '', negative: '' };
-    if (selectedPromptSet && imagePromptSets.length > 0) {
-      const promptSet = imagePromptSets.find(ps => ps.name === selectedPromptSet);
-      if (promptSet) {
+    if (selectedPromptSet && imageStyles.length > 0) {
+      const styleComponent = promptLibraryService.getComponentById(library, selectedPromptSet);
+      if (styleComponent) {
         promptSetPrompt = {
-          positive: promptSet.positive || '',
-          negative: promptSet.negative || '',
+          positive: styleComponent.positive || '',
+          negative: styleComponent.negative || '',
         };
       }
     }
 
-    // Add selected mood set description as a hint (for reference, not directly in prompt)
-    // Mood sets are more for text generation, but we can add a subtle hint
+    // Add selected mood visual prompts from library
     let moodHint = '';
-    if (selectedMoodSet && moodSets.length > 0) {
-      const moodSet = moodSets.find(ms => ms.name === selectedMoodSet);
-      if (moodSet) {
-        // Extract emotion keywords from mood description for image generation
-        moodHint = selectedMoodSet; // Use the mood name as a simple hint
+    let moodNegative = '';
+    if (selectedMoodSet && moodComponents.length > 0) {
+      const moodComponent = promptLibraryService.getComponentById(library, selectedMoodSet);
+      if (moodComponent) {
+        // Use the mood's visual prompts for image generation
+        moodHint = moodComponent.positive || '';
+        moodNegative = moodComponent.negative || '';
       }
     }
 
@@ -147,6 +155,7 @@ export function PromptComposerDialog({
     const negativeParts = [
       basePrompt.negative,
       promptSetPrompt.negative,
+      moodNegative,
       componentPrompt.negative,
       customNegative,
     ].filter(Boolean);
@@ -155,7 +164,7 @@ export function PromptComposerDialog({
       positive: positiveParts.join(', '),
       negative: negativeParts.join(', '),
     };
-  }, [appearance, includeCharacter, enabledRegions, library, selectedComponents, customPositive, customNegative, selectedPromptSet, selectedMoodSet, imagePromptSets, moodSets]);
+  }, [appearance, includeCharacter, enabledRegions, library, selectedComponents, customPositive, customNegative, selectedPromptSet, selectedMoodSet, imageStyles, moodComponents]);
 
   // Toggle a specific region
   const toggleRegion = useCallback((region: PromptRegion) => {
@@ -342,12 +351,12 @@ export function PromptComposerDialog({
                 </div>
               )}
 
-              {/* Character Prompt Sets and Mood Sets */}
-              {(imagePromptSets.length > 0 || moodSets.length > 0) && (
+              {/* Image Styles and Moods from Library */}
+              {(imageStyles.length > 0 || moodComponents.length > 0) && (
                 <div className="prompt-composer__section">
-                  <label className="prompt-composer__section-label">Character Style</label>
+                  <label className="prompt-composer__section-label">Style & Mood</label>
                   <div className="prompt-composer__character-sets">
-                    {imagePromptSets.length > 0 && (
+                    {imageStyles.length > 0 && (
                       <div className="prompt-composer__set-picker">
                         <label className="prompt-composer__set-label">Image Style</label>
                         <select
@@ -356,15 +365,15 @@ export function PromptComposerDialog({
                           onChange={(e) => setSelectedPromptSet(e.target.value)}
                         >
                           <option value="">None</option>
-                          {imagePromptSets.map(ps => (
-                            <option key={ps.name} value={ps.name}>
-                              {ps.name}
+                          {imageStyles.map(style => (
+                            <option key={style.id} value={style.id}>
+                              {style.name}
                             </option>
                           ))}
                         </select>
                       </div>
                     )}
-                    {moodSets.length > 0 && (
+                    {moodComponents.length > 0 && (
                       <div className="prompt-composer__set-picker">
                         <label className="prompt-composer__set-label">Mood</label>
                         <select
@@ -373,18 +382,18 @@ export function PromptComposerDialog({
                           onChange={(e) => setSelectedMoodSet(e.target.value)}
                         >
                           <option value="">None</option>
-                          {moodSets.map(ms => (
-                            <option key={ms.name} value={ms.name} title={ms.description}>
-                              {ms.name}
+                          {moodComponents.map(mood => (
+                            <option key={mood.id} value={mood.id} title={mood.description}>
+                              {mood.name}
                             </option>
                           ))}
                         </select>
                       </div>
                     )}
                   </div>
-                  {selectedMoodSet && moodSets.length > 0 && (
+                  {selectedMoodSet && moodComponents.length > 0 && (
                     <p className="prompt-composer__hint">
-                      {moodSets.find(ms => ms.name === selectedMoodSet)?.description}
+                      {promptLibraryService.getMoodDescription(library, selectedMoodSet)}
                     </p>
                   )}
                 </div>

@@ -112,6 +112,35 @@
   background-color: #3b82f6;
 }
 
+/* AI button active state (session running) */
+.ink-btn-ai-active {
+  position: relative;
+  background-color: #553c9a;
+  border-color: #805ad5;
+}
+
+.ink-ai-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.ink-ai-indicator-working {
+  background-color: #f6e05e;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.ink-ai-indicator-active {
+  background-color: #68d391;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Error badge */
 .ink-editor-error-badge {
   display: flex;
@@ -862,6 +891,44 @@
   border-right: 1px solid #3c3c3c;
 }
 
+/* History sidebar */
+.ink-history-sidebar {
+  flex: 0 0 280px;
+  min-width: 220px;
+  max-width: 350px;
+  overflow: hidden;
+  border-right: 1px solid #3c3c3c;
+}
+
+/* History button */
+.ink-btn-history {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ink-btn-history.active {
+  background-color: #0e639c;
+  color: #fff;
+}
+
+.ink-history-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ink-btn-history:not(.active) .ink-history-count {
+  background: #5c5c5c;
+}
+
 /* Graph layout with panels */
 /* Main area automatically adjusts via flex: 1, no percentage calculations needed */
 
@@ -1025,9 +1092,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background-color: #2d2d2d;
-  border-radius: 4px;
+  padding: 10px 12px;
+  background-color: #252525;
+  border: 1px solid #333;
+  border-radius: 6px;
 }
 
 .ink-ai-context-label {
@@ -1081,19 +1149,19 @@
 }
 
 .ink-ai-label {
-  font-size: 12px;
-  color: #9d9d9d;
+  font-size: 13px;
+  color: #bbb;
   font-weight: 500;
 }
 
 .ink-ai-textarea {
-  background-color: #3c3c3c;
-  border: 1px solid #454545;
-  border-radius: 4px;
-  color: #cccccc;
-  font-size: 13px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 14px;
   font-family: inherit;
-  padding: 10px;
+  padding: 12px;
   resize: vertical;
   min-height: 60px;
   outline: none;
@@ -1101,33 +1169,37 @@
 }
 
 .ink-ai-textarea:focus {
-  border-color: #6b46c1;
+  border-color: #5b9bd5;
 }
 
 .ink-ai-textarea::placeholder {
-  color: #6e6e6e;
+  color: #808080;
 }
 
 .ink-ai-examples {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #888;
 }
 
 .ink-ai-example {
-  background-color: #2d2d2d;
-  border: 1px solid #3c3c3c;
-  border-radius: 12px;
-  color: #9d9d9d;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #aaa;
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.15s;
 }
 
 .ink-ai-example:hover:not(:disabled) {
-  background-color: #3c3c3c;
-  color: #cccccc;
+  background: #444;
+  color: #ddd;
+  border-color: #555;
 }
 
 .ink-ai-example:disabled {
@@ -1136,12 +1208,12 @@
 }
 
 .ink-ai-error {
-  background-color: rgba(244, 67, 54, 0.1);
-  border: 1px solid #f44336;
-  border-radius: 4px;
-  color: #f44336;
-  font-size: 12px;
-  padding: 8px 10px;
+  padding: 12px;
+  background-color: #3d1a1a;
+  border: 1px solid #5a2d2d;
+  border-radius: 6px;
+  color: #ff7f7f;
+  font-size: 13px;
 }
 
 .ink-ai-preview {
@@ -1220,44 +1292,58 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: #2d2d2d;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  background-color: #252525;
+  border: 1px solid #333;
 }
 
 .ink-ai-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #808080;
+  background-color: #666;
+}
+
+.ink-ai-status--idle .ink-ai-status-dot {
+  background-color: #666;
 }
 
 .ink-ai-status--thinking .ink-ai-status-dot,
 .ink-ai-status--executing_tools .ink-ai-status-dot {
-  background-color: #dcdcaa;
-  animation: pulse 1s infinite;
+  background-color: #f0ad4e;
+  animation: pulse 1s ease-in-out infinite;
 }
 
 .ink-ai-status--active .ink-ai-status-dot {
-  background-color: #4ec9b0;
+  background-color: #5cb85c;
 }
 
 .ink-ai-status--completed .ink-ai-status-dot {
-  background-color: #6a9955;
+  background-color: #5cb85c;
 }
 
 .ink-ai-status--error .ink-ai-status-dot {
-  background-color: #f48771;
+  background-color: #d9534f;
+}
+
+.ink-ai-status--warning .ink-ai-status-dot {
+  background-color: #f0ad4e;
+}
+
+.ink-ai-status--cancelled .ink-ai-status-dot {
+  background-color: #888;
 }
 
 .ink-ai-status-text {
-  color: #d4d4d4;
+  color: #ccc;
 }
 
 .ink-ai-status-turn {
-  color: #808080;
+  color: #888;
   margin-left: auto;
+  font-size: 12px;
 }
 
 @keyframes pulse {
@@ -1269,18 +1355,18 @@
 .ink-ai-typing {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background-color: #2d2d2d;
-  border-radius: 4px;
-  align-self: flex-start;
+  gap: 6px;
+  padding: 12px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  margin-right: 20px;
 }
 
 .ink-ai-typing-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background-color: #dcdcaa;
+  background-color: #f0ad4e;
   animation: typingBounce 1.4s infinite ease-in-out both;
 }
 
@@ -1298,8 +1384,8 @@
 
 .ink-ai-typing-text {
   margin-left: 8px;
-  font-size: 11px;
-  color: #808080;
+  font-size: 12px;
+  color: #888;
   font-style: italic;
 }
 
@@ -1319,56 +1405,96 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   min-height: 150px;
   max-height: 300px;
-  padding: 8px;
+  padding: 12px;
   background-color: #1e1e1e;
+  border-radius: 6px;
+}
+
+/* Scrollbar styling for messages area */
+.ink-ai-messages::-webkit-scrollbar,
+.ink-ai-tool-call-result pre::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ink-ai-messages::-webkit-scrollbar-track,
+.ink-ai-tool-call-result pre::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.ink-ai-messages::-webkit-scrollbar-thumb,
+.ink-ai-tool-call-result pre::-webkit-scrollbar-thumb {
+  background: #444;
   border-radius: 4px;
+}
+
+.ink-ai-messages::-webkit-scrollbar-thumb:hover,
+.ink-ai-tool-call-result pre::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .ink-ai-message {
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
 }
 
 .ink-ai-message--user {
-  background-color: #264f78;
-  align-self: flex-end;
-  max-width: 85%;
+  background-color: #1a3a5c;
+  margin-left: 20px;
 }
 
 .ink-ai-message--assistant {
-  background-color: #2d2d2d;
-  align-self: flex-start;
-  max-width: 85%;
+  background-color: #2a2a2a;
+  margin-right: 20px;
 }
 
 .ink-ai-message--system {
-  background-color: #3c3c3c;
-  align-self: center;
-  font-style: italic;
-  color: #a0a0a0;
+  background-color: #252525;
+  border: 1px solid #333;
+  font-size: 12px;
+}
+
+.ink-ai-message--tool {
+  background-color: #252525;
+  border: 1px solid #333;
+  font-size: 12px;
 }
 
 .ink-ai-message-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  align-items: center;
+  font-size: 12px;
 }
 
 .ink-ai-message-role {
   font-weight: 600;
-  color: #4ec9b0;
-  font-size: 10px;
-  text-transform: uppercase;
+  color: #5b9bd5;
+  font-size: 11px;
+}
+
+.ink-ai-message--user .ink-ai-message-role {
+  color: #7cb3f0;
+}
+
+.ink-ai-message-time {
+  color: #666;
+  font-size: 11px;
+  margin-left: auto;
 }
 
 .ink-ai-message-content {
-  color: #d4d4d4;
-  line-height: 1.4;
+  color: #ddd;
+  font-size: 13px;
+  line-height: 1.5;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .ink-ai-message--has-full {
@@ -1384,53 +1510,130 @@
 
 .ink-ai-tool-calls {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .ink-ai-tool-call {
-  display: inline-flex;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ink-ai-tool-call-header {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  background-color: #3c3c3c;
-  border-radius: 3px;
-  font-size: 10px;
-  color: #dcdcaa;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ink-ai-tool-call-header:hover {
+  background: #252525;
 }
 
 .ink-ai-tool-icon {
-  font-size: 10px;
+  font-size: 14px;
 }
 
 .ink-ai-tool-name {
-  font-family: monospace;
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #9cdcfe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ink-ai-tool-toggle {
+  color: #666;
+  font-size: 10px;
+}
+
+.ink-ai-tool-call-preview {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ink-ai-tool-call-result {
+  padding: 12px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+}
+
+.ink-ai-tool-call-result pre {
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #b5cea8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
 }
 
 .ink-ai-stats {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 6px 10px;
-  background-color: #252526;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #4ec9b0;
+  padding: 10px 12px;
+  background-color: #252525;
+  border-top: 1px solid #333;
+  border-radius: 0 0 6px 6px;
+  font-size: 12px;
+}
+
+.ink-ai-stat {
+  color: #888;
+}
+
+.ink-ai-stat strong {
+  color: #aaa;
 }
 
 .ink-ai-completion {
-  padding: 10px;
-  background-color: #1d3d1d;
-  border: 1px solid #4ec9b0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #d4d4d4;
+  padding: 12px;
+  background-color: #1a3d1a;
+  border: 1px solid #2d5a2d;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #7fdf7f;
 }
 
 .ink-ai-input-area {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #333;
+  background: #252525;
+  border-radius: 0 0 6px 6px;
+}
+
+.ink-ai-input-area .ink-ai-textarea {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px;
+  color: #e0e0e0;
+  resize: none;
+}
+
+.ink-ai-input-area .ink-ai-textarea:focus {
+  border-color: #5b9bd5;
+}
+
+.ink-ai-input-area .ink-ai-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .ink-ai-textarea--small {
@@ -1441,6 +1644,27 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.ink-ai-input-actions button {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 12px;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ink-ai-input-actions button:hover:not(:disabled) {
+  background: #444;
+  border-color: #555;
+}
+
+.ink-ai-input-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Preview Mode Container */
@@ -1480,4 +1704,76 @@
   to {
     stroke-dashoffset: 0;
   }
+}
+
+/* ============================================================================
+   React Flow MiniMap & Controls - Dark Theme Styling
+   ============================================================================ */
+
+/* MiniMap container */
+.react-flow__minimap {
+  background-color: #1e1e1e !important;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+}
+
+/* MiniMap mask (the visible viewport indicator) */
+.react-flow__minimap-mask {
+  fill: rgba(78, 201, 176, 0.15) !important;
+  stroke: #4ec9b0 !important;
+  stroke-width: 1px;
+}
+
+/* Controls container */
+.react-flow__controls {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Control buttons */
+.react-flow__controls-button {
+  background-color: #2d2d2d !important;
+  border: 1px solid #3c3c3c !important;
+  border-bottom: none !important;
+  fill: #d4d4d4 !important;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  transition: background-color 0.15s ease;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #3c3c3c !important;
+}
+
+.react-flow__controls-button:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.react-flow__controls-button:last-child {
+  border-radius: 0 0 4px 4px;
+  border-bottom: 1px solid #3c3c3c !important;
+}
+
+/* When only one button, needs full rounded corners */
+.react-flow__controls-button:only-child {
+  border-radius: 4px;
+  border-bottom: 1px solid #3c3c3c !important;
+}
+
+/* Control button SVG icons */
+.react-flow__controls-button svg {
+  fill: #d4d4d4;
+  max-width: 14px;
+  max-height: 14px;
+}
+
+.react-flow__controls-button:hover svg {
+  fill: #ffffff;
+}
+
+/* Interactive controls (like fit view) when active */
+.react-flow__controls-interactive {
+  fill: #4ec9b0 !important;
 }

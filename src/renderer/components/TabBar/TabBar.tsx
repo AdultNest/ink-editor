@@ -2,7 +2,7 @@
  * TabBar container component
  *
  * Displays a horizontal list of tabs for open files with:
- * - Horizontal scrolling for overflow
+ * - Multi-row wrapping when tabs exceed available width
  * - Active tab highlighting
  * - Tab selection and close callbacks
  * - Empty state handling
@@ -25,7 +25,7 @@ interface ContextMenuState {
  * TabBar component
  *
  * Renders a horizontal tab bar for managing open files.
- * Supports scrolling when tabs overflow the container.
+ * Tabs wrap to additional rows when they don't fit.
  *
  * @param props - TabBarProps including tabs array and event handlers
  */
@@ -42,8 +42,6 @@ function TabBar({
   onCloseAllTabs,
   className,
 }: TabBarProps) {
-  // Ref to the tabs container for scroll management
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
   // Ref to track the active tab element for scroll-into-view
   const activeTabRef = useRef<HTMLDivElement>(null);
   // Context menu state
@@ -53,34 +51,10 @@ function TabBar({
    * Scroll the active tab into view when it changes
    */
   useEffect(() => {
-    if (activeTabRef.current && tabsContainerRef.current) {
-      const container = tabsContainerRef.current;
-      const activeTab = activeTabRef.current;
-
-      // Check if the active tab is outside the visible area
-      const containerRect = container.getBoundingClientRect();
-      const tabRect = activeTab.getBoundingClientRect();
-
-      if (tabRect.left < containerRect.left) {
-        // Tab is to the left of visible area
-        container.scrollLeft -= containerRect.left - tabRect.left + 8;
-      } else if (tabRect.right > containerRect.right) {
-        // Tab is to the right of visible area
-        container.scrollLeft += tabRect.right - containerRect.right + 8;
-      }
+    if (activeTabRef.current) {
+      activeTabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     }
   }, [activeTabId]);
-
-  /**
-   * Handle horizontal scroll with mouse wheel
-   */
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (tabsContainerRef.current) {
-      // Prevent vertical scroll, convert to horizontal
-      e.preventDefault();
-      tabsContainerRef.current.scrollLeft += e.deltaY;
-    }
-  }, []);
 
   /**
    * Handle tab selection
@@ -112,6 +86,21 @@ function TabBar({
       }
     },
     [onTabPin]
+  );
+
+  /**
+   * Handle middle-click to close tab
+   */
+  const handleMiddleClick = useCallback(
+    (e: React.MouseEvent, tab: TabData) => {
+      // Middle mouse button is button 1
+      if (e.button === 1 && !tab.isPinned) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleTabClose(tab.id);
+      }
+    },
+    [handleTabClose]
   );
 
   /**
@@ -181,8 +170,11 @@ function TabBar({
   useEffect(() => {
     if (!contextMenu) return;
 
-    const handleClickOutside = () => {
-      closeContextMenu();
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.tab-bar__context-menu')) {
+        closeContextMenu();
+      }
     };
 
     const handleEscape = (e: KeyboardEvent) => {
@@ -191,11 +183,11 @@ function TabBar({
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [contextMenu, closeContextMenu]);
@@ -288,24 +280,14 @@ function TabBar({
       aria-label="Open files"
       onKeyDown={handleKeyDown}
     >
-      <div
-        ref={tabsContainerRef}
-        className="tab-bar__tabs"
-        onWheel={handleWheel}
-      >
+      <div className="tab-bar__tabs">
         {tabs.map((tab) => (
           <div
             key={tab.id}
             ref={tab.id === activeTabId ? activeTabRef : undefined}
             className="tab-bar__tab-wrapper"
             onContextMenu={(e) => handleTabContextMenu(e, tab)}
-            onAuxClick={(e) => {
-              // Middle mouse button (button 1) closes the tab
-              if (e.button === 1 && !tab.isPinned) {
-                e.preventDefault();
-                handleTabClose(tab.id);
-              }
-            }}
+            onMouseDown={(e) => handleMiddleClick(e, tab)}
           >
             <Tab
               tab={tab}

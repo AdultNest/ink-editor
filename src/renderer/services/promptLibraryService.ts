@@ -13,7 +13,7 @@ import {
 import type { GeneratedPrompt } from './promptBuilder';
 
 /** Current library version */
-const LIBRARY_VERSION = 1;
+const LIBRARY_VERSION = 2;
 
 /** Filename for prompt library */
 export const PROMPT_LIBRARY_FILENAME = '.prompt-library.json';
@@ -69,6 +69,26 @@ export function getDefaultLibrary(): ProjectPromptLibrary {
       { id: 'weather_rainy', name: 'Rainy', category: PromptComponentCategory.TIME_WEATHER, positive: 'rainy, rain, wet, raindrops, umbrella', negative: 'sunny, dry' },
       { id: 'weather_snowy', name: 'Snowy', category: PromptComponentCategory.TIME_WEATHER, positive: 'snowy, snow, winter, cold, white', negative: 'summer, warm' },
       { id: 'weather_foggy', name: 'Foggy', category: PromptComponentCategory.TIME_WEATHER, positive: 'foggy, misty, fog, hazy, atmospheric', negative: 'clear, sunny' },
+
+      // Image Styles
+      { id: 'style_realistic', name: 'Realistic', category: PromptComponentCategory.IMAGE_STYLE, positive: 'realistic, photorealistic, photo, real life', negative: 'anime, cartoon, drawing' },
+      { id: 'style_anime', name: 'Anime', category: PromptComponentCategory.IMAGE_STYLE, positive: 'anime, anime style, manga style, japanese animation', negative: 'realistic, photo, 3d render' },
+      { id: 'style_digital_art', name: 'Digital Art', category: PromptComponentCategory.IMAGE_STYLE, positive: 'digital art, digital painting, digital illustration', negative: 'photo, realistic' },
+      { id: 'style_oil_painting', name: 'Oil Painting', category: PromptComponentCategory.IMAGE_STYLE, positive: 'oil painting, classical painting, painted, brush strokes', negative: 'photo, digital, anime' },
+      { id: 'style_watercolor', name: 'Watercolor', category: PromptComponentCategory.IMAGE_STYLE, positive: 'watercolor, watercolor painting, soft colors, flowing paint', negative: 'photo, digital, sharp lines' },
+      { id: 'style_3d_render', name: '3D Render', category: PromptComponentCategory.IMAGE_STYLE, positive: '3d render, 3d art, cgi, rendered, octane render', negative: 'hand drawn, painting, 2d' },
+      { id: 'style_comic', name: 'Comic Book', category: PromptComponentCategory.IMAGE_STYLE, positive: 'comic book, comic art, western comic, graphic novel style', negative: 'realistic, photo, anime' },
+      { id: 'style_pixel', name: 'Pixel Art', category: PromptComponentCategory.IMAGE_STYLE, positive: 'pixel art, 8-bit, retro game, pixelated', negative: 'realistic, high resolution, smooth' },
+
+      // Moods (for text generation)
+      { id: 'mood_friendly', name: 'Friendly', category: PromptComponentCategory.MOOD, positive: 'friendly expression, warm smile, approachable', negative: 'angry, hostile', description: 'Warm, approachable, uses casual language and humor. Genuinely interested in conversation and makes others feel comfortable.' },
+      { id: 'mood_flirty', name: 'Flirty', category: PromptComponentCategory.MOOD, positive: 'flirty expression, playful smile, charming', negative: 'serious, cold', description: 'Playful and charming, uses subtle compliments and teasing. Shows romantic interest while maintaining respect.' },
+      { id: 'mood_serious', name: 'Serious', category: PromptComponentCategory.MOOD, positive: 'serious expression, focused, determined', negative: 'smiling, playful', description: 'Direct and focused, professional tone. Speaks thoughtfully about important matters.' },
+      { id: 'mood_shy', name: 'Shy', category: PromptComponentCategory.MOOD, positive: 'shy expression, bashful, looking away, blushing', negative: 'confident, bold', description: 'Reserved and hesitant, uses shorter sentences. Takes time to open up and speaks softly.' },
+      { id: 'mood_confident', name: 'Confident', category: PromptComponentCategory.MOOD, positive: 'confident expression, self-assured, bold pose', negative: 'shy, uncertain', description: 'Self-assured and bold, takes initiative in conversation. Speaks with certainty and charisma.' },
+      { id: 'mood_mysterious', name: 'Mysterious', category: PromptComponentCategory.MOOD, positive: 'mysterious expression, enigmatic, subtle smile', negative: 'open, obvious', description: 'Enigmatic and intriguing, speaks in hints and riddles. Reveals little while maintaining interest.' },
+      { id: 'mood_angry', name: 'Angry', category: PromptComponentCategory.MOOD, positive: 'angry expression, frown, furrowed brow', negative: 'happy, smiling', description: 'Frustrated and confrontational, uses sharp words. Direct about displeasure but can be reasoned with.' },
+      { id: 'mood_sad', name: 'Sad', category: PromptComponentCategory.MOOD, positive: 'sad expression, melancholic, downcast eyes', negative: 'happy, energetic', description: 'Melancholic and speaks softly, needs comfort. May be withdrawn but appreciates support.' },
     ],
   };
 }
@@ -249,6 +269,30 @@ class PromptLibraryServiceClass {
       const positiveMatch = c.positive.toLowerCase().includes(lowerQuery);
       return nameMatch || tagMatch || positiveMatch;
     });
+  }
+
+  /**
+   * Get mood description by component ID
+   * Returns the description field for MOOD category components
+   */
+  getMoodDescription(library: ProjectPromptLibrary, moodId: string): string | null {
+    const component = this.getComponentById(library, moodId);
+    if (!component || component.category !== PromptComponentCategory.MOOD) {
+      return null;
+    }
+    return component.description || null;
+  }
+
+  /**
+   * Get image style prompt by component ID
+   * Returns positive/negative prompts for IMAGE_STYLE category components
+   */
+  getImageStylePrompt(library: ProjectPromptLibrary, styleId: string): { positive: string; negative: string } | null {
+    const component = this.getComponentById(library, styleId);
+    if (!component || component.category !== PromptComponentCategory.IMAGE_STYLE) {
+      return null;
+    }
+    return { positive: component.positive, negative: component.negative || '' };
   }
 
   /**

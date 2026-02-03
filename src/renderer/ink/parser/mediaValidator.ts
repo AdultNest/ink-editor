@@ -3,7 +3,11 @@
  *
  * Validates that image and video files exist in the project's
  * Images/ and Videos/ folders.
+ *
+ * Also provides utilities for extracting media references from ink content.
  */
+
+import type { ParsedInk, InkParseError } from './inkTypes';
 
 /**
  * Result of validating a media file
@@ -303,4 +307,178 @@ export class MediaValidator {
  */
 export function createMediaValidator(projectPath: string): MediaValidator {
   return new MediaValidator(projectPath);
+}
+
+// ============================================================================
+// Media Reference Extraction (platform-independent)
+// ============================================================================
+
+/**
+ * Media reference extracted from ink content
+ */
+export interface MediaReference {
+  /** The type of media */
+  type: 'image' | 'player-image' | 'video' | 'player-video';
+  /** The filename (without path, may or may not have extension) */
+  filename: string;
+  /** The line number where this reference appears */
+  lineNumber: number;
+  /** The knot name where this reference appears */
+  knotName: string;
+}
+
+// Patterns matching knotContentParser.ts
+const MEDIA_PATTERNS = {
+  /** NPC image: <filename> (not starting with player-, video-, fake-type-, side-story-, wait-) */
+  image: /^<(?!player-|video-|fake-type-|side-story-|wait-)([^>]+)>$/,
+  /** Player image: <player-filename> (not player-video-) */
+  playerImage: /^<player-(?!video-)([^>]+)>$/,
+  /** NPC video: <video-filename> */
+  video: /^<video-([^>]+)>$/,
+  /** Player video: <player-video-filename> */
+  playerVideo: /^<player-video-([^>]+)>$/,
+};
+
+/**
+ * Extract all media references from parsed ink content
+ *
+ * @param parsedInk - The parsed ink content
+ * @returns Array of media references found
+ */
+export function extractMediaReferences(parsedInk: ParsedInk): MediaReference[] {
+  const references: MediaReference[] = [];
+
+  for (const knot of parsedInk.knots) {
+    const lines = knot.bodyContent.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lineNumber = knot.lineStart + 1 + i;
+
+      // Check for player video (most specific first)
+      let match = line.match(MEDIA_PATTERNS.playerVideo);
+      if (match) {
+        references.push({
+          type: 'player-video',
+          filename: match[1],
+          lineNumber,
+          knotName: knot.name,
+        });
+        continue;
+      }
+
+      // Check for NPC video
+      match = line.match(MEDIA_PATTERNS.video);
+      if (match) {
+        references.push({
+          type: 'video',
+          filename: match[1],
+          lineNumber,
+          knotName: knot.name,
+        });
+        continue;
+      }
+
+      // Check for player image
+      match = line.match(MEDIA_PATTERNS.playerImage);
+      if (match) {
+        references.push({
+          type: 'player-image',
+          filename: match[1],
+          lineNumber,
+          knotName: knot.name,
+        });
+        continue;
+      }
+
+      // Check for NPC image (least specific)
+      match = line.match(MEDIA_PATTERNS.image);
+      if (match) {
+        references.push({
+          type: 'image',
+          filename: match[1],
+          lineNumber,
+          knotName: knot.name,
+        });
+        continue;
+      }
+    }
+  }
+
+  return references;
+}
+
+/**
+ * Supported image extensions
+ */
+export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
+
+/**
+ * Supported video extensions
+ */
+export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.mkv', '.avi', '.m4v'];
+
+/**
+ * Check if a media reference exists in a set of available files
+ * Handles files with and without extensions
+ *
+ * @param filename - The filename to check (may or may not have extension)
+ * @param availableFiles - Set of available filenames
+ * @param extensions - Extensions to try if filename has no extension
+ * @returns True if file exists
+ */
+export function mediaFileExists(
+  filename: string,
+  availableFiles: Set<string>,
+  extensions: string[]
+): boolean {
+  // Check exact match first
+  if (availableFiles.has(filename)) {
+    return true;
+  }
+
+  // If filename has no extension, try with common extensions
+  if (!filename.includes('.')) {
+    for (const ext of extensions) {
+      if (availableFiles.has(`${filename}${ext}`)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Validate media references against available files
+ * This is a pure function that doesn't require filesystem access.
+ *
+ * @param references - Media references to validate
+ * @param availableImages - Set of available image filenames
+ * @param availableVideos - Set of available video filenames
+ * @returns Array of parse errors for missing media
+ */
+export function validateMediaReferences(
+  references: MediaReference[],
+  availableImages: Set<string>,
+  availableVideos: Set<string>
+): InkParseError[] {
+  const errors: InkParseError[] = [];
+
+  for (const ref of references) {
+    const isVideo = ref.type === 'video' || ref.type === 'player-video';
+    const availableFiles = isVideo ? availableVideos : availableImages;
+    const extensions = isVideo ? VIDEO_EXTENSIONS : IMAGE_EXTENSIONS;
+
+    if (!mediaFileExists(ref.filename, availableFiles, extensions)) {
+      errors.push({
+        message: `Missing ${ref.type} file '${ref.filename}'`,
+        lineNumber: ref.lineNumber,
+        severity: 'error',
+        category: 'media',
+      });
+    }
+  }
+
+  return errors;
 }

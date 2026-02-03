@@ -6,13 +6,14 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { AppSettings, OllamaSettings as OllamaSettingsType, ComfyUISettings as ComfyUISettingsType } from '../../../preload';
+import type { AppSettings, OllamaSettings as OllamaSettingsType, ComfyUISettings as ComfyUISettingsType, EditorSettings as EditorSettingsType } from '../../../preload';
 import { OllamaSettings } from './OllamaSettings';
 import { ComfyUISettings } from './ComfyUISettings';
+import { EditorSettings, DEFAULT_EDITOR_SETTINGS } from './EditorSettings';
 import { TutorialPanel } from './TutorialPanel';
 import './SettingsDialog.css';
 
-export type SettingsTab = 'ollama' | 'comfyui' | 'guide';
+export type SettingsTab = 'editor' | 'ollama' | 'comfyui' | 'guide';
 
 export interface SettingsDialogProps {
   /** Whether the dialog is open */
@@ -48,12 +49,22 @@ export function SettingsDialog({
   onSettingsChange,
   onClose,
 }: SettingsDialogProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('ollama');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('editor');
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Get current settings with defaults
   const ollamaSettings = settings.ollama || DEFAULT_OLLAMA_SETTINGS;
   const comfyuiSettings = settings.comfyui || DEFAULT_COMFYUI_SETTINGS;
+  const editorSettings = settings.editor || DEFAULT_EDITOR_SETTINGS;
+
+  // Handle Editor settings change
+  const handleEditorChange = useCallback(
+    (updates: Partial<EditorSettingsType>) => {
+      const newEditorSettings = { ...editorSettings, ...updates };
+      onSettingsChange({ ...settings, editor: newEditorSettings });
+    },
+    [settings, editorSettings, onSettingsChange]
+  );
 
   // Handle Ollama settings change
   const handleOllamaChange = useCallback(
@@ -116,7 +127,7 @@ export function SettingsDialog({
       <div className="settings-dialog" ref={dialogRef} tabIndex={-1}>
         <div className="settings-dialog__header">
           <h2 id="settings-dialog-title" className="settings-dialog__title">
-            AI Settings
+            Settings
           </h2>
           <button
             type="button"
@@ -129,6 +140,13 @@ export function SettingsDialog({
         </div>
 
         <div className="settings-dialog__tabs">
+          <button
+            type="button"
+            className={`settings-dialog__tab ${activeTab === 'editor' ? 'settings-dialog__tab--active' : ''}`}
+            onClick={() => setActiveTab('editor')}
+          >
+            Editor
+          </button>
           <button
             type="button"
             className={`settings-dialog__tab ${activeTab === 'ollama' ? 'settings-dialog__tab--active' : ''}`}
@@ -153,6 +171,9 @@ export function SettingsDialog({
         </div>
 
         <div className="settings-dialog__content">
+          {activeTab === 'editor' && (
+            <EditorSettings settings={editorSettings} onChange={handleEditorChange} />
+          )}
           {activeTab === 'ollama' && (
             <OllamaSettings settings={ollamaSettings} onChange={handleOllamaChange} />
           )}

@@ -211,6 +211,7 @@ export interface ConversationSessionConfig {
     maxTokens?: number;
   };
   characterConfig?: unknown;
+  playerCharacterConfig?: unknown;
   promptLibrary?: unknown;
 }
 
@@ -232,6 +233,8 @@ export interface ConversationSessionState {
   createdKnots: string[];
   modifiedKnots: string[];
   error?: string;
+  createdAt?: number;
+  lastActivityAt?: number;
 }
 
 /**
@@ -251,7 +254,20 @@ export interface ConversationTurnResult {
   createdKnots: string[];
   modifiedKnots: string[];
   error?: string;
+  /** Non-fatal warning message (e.g., LLM didn't call any tools) */
+  warning?: string;
   completionSummary?: string;
+  /** Info about history compaction if it occurred this turn */
+  historyCompaction?: {
+    occurred: boolean;
+    messagesSummarized: number;
+    messagesKept: number;
+    summary: string;
+  };
+  /** Whether the AI is waiting for user response (from ask_user tool) */
+  awaitingUserResponse?: boolean;
+  /** The question being asked to the user (from ask_user tool) */
+  userQuestion?: string;
 }
 
 /**
@@ -263,6 +279,18 @@ export type ConversationUpdateCallback = (sessionId: string, update: Conversatio
  * Callback type for file change events from conversation
  */
 export type ConversationFileChangeCallback = (filePath: string) => void;
+
+/**
+ * Callback type for content change events from conversation.
+ * Provides the new file content for the editor to update without disk I/O.
+ */
+export type ConversationContentChangeCallback = (filePath: string, content: string) => void;
+
+/**
+ * Callback type for content request events from conversation.
+ * The AI requests the current editor content for a file.
+ */
+export type ConversationContentRequestCallback = (requestId: string, filePath: string) => void;
 
 /**
  * ElectronAPI interface exposed to the renderer process
@@ -567,6 +595,11 @@ export interface ElectronAPI {
   endConversationSession: (sessionId: string) => Promise<boolean>;
 
   /**
+   * Lists all conversation sessions (optionally filtered by ink file)
+   */
+  listConversationSessions: (inkFilePath?: string) => Promise<ConversationSessionState[]>;
+
+  /**
    * Registers a callback for conversation update events
    */
   onConversationUpdate: (callback: ConversationUpdateCallback) => () => void;
@@ -575,6 +608,24 @@ export interface ElectronAPI {
    * Registers a callback for file changes from conversation tools
    */
   onConversationFileChange: (callback: ConversationFileChangeCallback) => () => void;
+
+  /**
+   * Registers a callback for content changes from conversation tools.
+   * This is used when AI modifies file content - the content is sent directly
+   * to the editor without writing to disk.
+   */
+  onConversationContentChange: (callback: ConversationContentChangeCallback) => () => void;
+
+  /**
+   * Registers a callback for content requests from conversation tools.
+   * The AI requests the current editor content to read the latest state.
+   */
+  onConversationContentRequest: (callback: ConversationContentRequestCallback) => () => void;
+
+  /**
+   * Responds to a content request with the current editor content.
+   */
+  respondToContentRequest: (requestId: string, content: string | null) => void;
 }
 
 // Augment the global Window interface to include electronAPI

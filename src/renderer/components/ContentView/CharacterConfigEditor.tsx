@@ -13,6 +13,12 @@ import {
   type CharacterConfig,
   promptBuilder,
 } from '../../services/promptBuilder';
+import {
+  type ProjectPromptLibrary,
+  PromptComponentCategory,
+  promptLibraryService,
+  getDefaultLibrary,
+} from '../../services';
 import { ImageGenerator } from '../ImageGenerator';
 import { QuickPromptBuilder } from '../QuickPromptBuilder';
 import './CharacterConfigEditor.css';
@@ -23,21 +29,10 @@ export interface CharacterConfigEditorProps {
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-interface ImagePromptSet {
-  name: string;
-  positive: string;
-  negative?: string;
-}
-
-interface MoodSet {
-  name: string;
-  description: string;
-}
-
-/** Extended config for the editor (adds required arrays) */
+/** Extended config for the editor */
 interface EditorCharacterConfig extends CharacterConfig {
-  imagePromptSets: ImagePromptSet[];
-  moodSets: MoodSet[];
+  defaultImageStyleId?: string;
+  defaultMoodId?: string;
 }
 
 const DEFAULT_APPEARANCE: CharacterAppearance = {
@@ -85,36 +80,7 @@ const DEFAULT_APPEARANCE: CharacterAppearance = {
 const DEFAULT_CONFIG: EditorCharacterConfig = {
   characterId: '',
   appearance: { ...DEFAULT_APPEARANCE },
-  imagePromptSets: [],
-  moodSets: [],
 };
-
-// Common prompt suggestions for guidance (for custom prompt sets)
-const PROMPT_SUGGESTIONS = {
-  appearance: ['1girl', '1boy', '1guy', 'young woman', 'young man', 'mature woman', 'mature man'],
-  hair: ['blonde hair', 'brown hair', 'black hair', 'red hair', 'silver hair', 'short hair', 'long hair', 'ponytail', 'twin tails'],
-  eyes: ['blue eyes', 'green eyes', 'brown eyes', 'red eyes', 'heterochromia'],
-  clothing: ['casual clothes', 'formal suit', 'dress', 't-shirt', 'hoodie', 'school uniform', 'business attire'],
-  style: ['realistic', 'anime style', 'semi-realistic', 'photorealistic', 'digital art'],
-  quality: ['masterpiece', 'best quality', 'high resolution', 'detailed', '8k'],
-};
-
-const NEGATIVE_SUGGESTIONS = [
-  'bad quality', 'worst quality', 'low quality', 'blurry', 'pixelated',
-  'deformed', 'ugly', 'bad anatomy', 'bad hands', 'extra fingers',
-  'missing fingers', 'extra limbs', 'missing limbs', 'watermark', 'text',
-];
-
-const MOOD_SUGGESTIONS = [
-  { name: 'friendly', desc: 'Warm, approachable, uses casual language and humor' },
-  { name: 'flirty', desc: 'Playful, charming, uses subtle compliments and teasing' },
-  { name: 'serious', desc: 'Direct, focused, professional tone' },
-  { name: 'shy', desc: 'Reserved, hesitant, uses shorter sentences' },
-  { name: 'confident', desc: 'Self-assured, bold, takes initiative in conversation' },
-  { name: 'mysterious', desc: 'Enigmatic, speaks in riddles, reveals little' },
-  { name: 'angry', desc: 'Frustrated, uses sharp words, confrontational' },
-  { name: 'sad', desc: 'Melancholic, speaks softly, needs comfort' },
-];
 
 export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: CharacterConfigEditorProps) {
   const [config, setConfig] = useState<EditorCharacterConfig>(DEFAULT_CONFIG);
@@ -122,9 +88,6 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'appearance' | 'image' | 'mood'>('appearance');
-  const [editingPromptIndex, setEditingPromptIndex] = useState<number | null>(null);
-  const [editingMoodIndex, setEditingMoodIndex] = useState<number | null>(null);
   const [copiedField, setCopiedField] = useState<'positive' | 'negative' | null>(null);
   // Collapsible sections
   const [faceDetailsExpanded, setFaceDetailsExpanded] = useState(false);
@@ -133,6 +96,8 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
   // Library component additions for preview
   const [libraryPositive, setLibraryPositive] = useState('');
   const [libraryNegative, setLibraryNegative] = useState('');
+  // Prompt library for style/mood selection
+  const [promptLibrary, setPromptLibrary] = useState<ProjectPromptLibrary>(getDefaultLibrary());
 
   const isDirty = JSON.stringify(config) !== JSON.stringify(originalConfig);
 
@@ -150,6 +115,24 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
   // Get project path from file path (parent directory)
   const projectPath = filePath.substring(0, filePath.lastIndexOf('\\') || filePath.lastIndexOf('/'));
   const projectRoot = projectPath.substring(0, projectPath.lastIndexOf('\\') || projectPath.lastIndexOf('/'));
+
+  // Load prompt library
+  useEffect(() => {
+    if (projectRoot) {
+      promptLibraryService.loadLibrary(projectRoot)
+        .then(lib => setPromptLibrary(lib))
+        .catch(() => setPromptLibrary(getDefaultLibrary()));
+    }
+  }, [projectRoot]);
+
+  // Get available image styles and moods from library
+  const availableImageStyles = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(promptLibrary, PromptComponentCategory.IMAGE_STYLE);
+  }, [promptLibrary]);
+
+  const availableMoods = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(promptLibrary, PromptComponentCategory.MOOD);
+  }, [promptLibrary]);
 
   // Build full body prompt for the image generator (for character review)
   const previewPrompt = useMemo(() => {
@@ -202,8 +185,8 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
             ...parsed,
             characterId: parsed.characterId || characterIdFromFile,
             appearance: { ...DEFAULT_APPEARANCE, ...(parsed.appearance || {}) },
-            imagePromptSets: parsed.imagePromptSets || [],
-            moodSets: parsed.moodSets || [],
+            defaultImageStyleId: parsed.defaultImageStyleId,
+            defaultMoodId: parsed.defaultMoodId,
           };
           setConfig(loadedConfig);
           setOriginalConfig(loadedConfig);
@@ -302,86 +285,21 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
     });
   }, []);
 
-  // Image prompt set handlers
-  const addImagePromptSet = useCallback(() => {
-    const newSet: ImagePromptSet = {
-      name: `style_${config.imagePromptSets.length + 1}`,
-      positive: '',
-      negative: '',
-    };
+  // Update default image style
+  const updateDefaultImageStyle = useCallback((styleId: string) => {
     setConfig(prev => ({
       ...prev,
-      imagePromptSets: [...prev.imagePromptSets, newSet],
-    }));
-    setEditingPromptIndex(config.imagePromptSets.length);
-  }, [config.imagePromptSets.length]);
-
-  const updateImagePromptSet = useCallback((index: number, updates: Partial<ImagePromptSet>) => {
-    setConfig(prev => ({
-      ...prev,
-      imagePromptSets: prev.imagePromptSets.map((set, i) =>
-        i === index ? { ...set, ...updates } : set
-      ),
+      defaultImageStyleId: styleId || undefined,
     }));
   }, []);
 
-  const deleteImagePromptSet = useCallback((index: number) => {
+  // Update default mood
+  const updateDefaultMood = useCallback((moodId: string) => {
     setConfig(prev => ({
       ...prev,
-      imagePromptSets: prev.imagePromptSets.filter((_, i) => i !== index),
-      defaultImagePromptSet: prev.defaultImagePromptSet === prev.imagePromptSets[index]?.name
-        ? undefined
-        : prev.defaultImagePromptSet,
-    }));
-    setEditingPromptIndex(null);
-  }, []);
-
-  // Mood set handlers
-  const addMoodSet = useCallback(() => {
-    const newSet: MoodSet = {
-      name: `mood_${config.moodSets.length + 1}`,
-      description: '',
-    };
-    setConfig(prev => ({
-      ...prev,
-      moodSets: [...prev.moodSets, newSet],
-    }));
-    setEditingMoodIndex(config.moodSets.length);
-  }, [config.moodSets.length]);
-
-  const updateMoodSet = useCallback((index: number, updates: Partial<MoodSet>) => {
-    setConfig(prev => ({
-      ...prev,
-      moodSets: prev.moodSets.map((set, i) =>
-        i === index ? { ...set, ...updates } : set
-      ),
+      defaultMoodId: moodId || undefined,
     }));
   }, []);
-
-  const deleteMoodSet = useCallback((index: number) => {
-    setConfig(prev => ({
-      ...prev,
-      moodSets: prev.moodSets.filter((_, i) => i !== index),
-      defaultMoodSet: prev.defaultMoodSet === prev.moodSets[index]?.name
-        ? undefined
-        : prev.defaultMoodSet,
-    }));
-    setEditingMoodIndex(null);
-  }, []);
-
-  const addSuggestionToPrompt = useCallback((index: number, suggestion: string, field: 'positive' | 'negative') => {
-    const currentSet = config.imagePromptSets[index];
-    const currentValue = field === 'positive' ? currentSet.positive : (currentSet.negative || '');
-    const newValue = currentValue ? `${currentValue}, ${suggestion}` : suggestion;
-    updateImagePromptSet(index, { [field]: newValue });
-  }, [config.imagePromptSets, updateImagePromptSet]);
-
-  const applyMoodTemplate = useCallback((index: number, template: { name: string; desc: string }) => {
-    updateMoodSet(index, {
-      name: template.name,
-      description: template.desc,
-    });
-  }, [updateMoodSet]);
 
   if (isLoading) {
     return (
@@ -419,43 +337,17 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
         <div className="config-editor__error">{error}</div>
       )}
 
-      {/* Tabs */}
-      <div className="config-editor__tabs">
-        <button
-          className={`config-editor__tab ${activeTab === 'appearance' ? 'active' : ''}`}
-          onClick={() => setActiveTab('appearance')}
-        >
-          <span className="config-editor__tab-icon">👤</span>
-          Appearance
-        </button>
-        <button
-          className={`config-editor__tab ${activeTab === 'image' ? 'active' : ''}`}
-          onClick={() => setActiveTab('image')}
-        >
-          <span className="config-editor__tab-icon">🖼️</span>
-          Prompt Sets
-          <span className="config-editor__tab-count">{config.imagePromptSets.length}</span>
-        </button>
-        <button
-          className={`config-editor__tab ${activeTab === 'mood' ? 'active' : ''}`}
-          onClick={() => setActiveTab('mood')}
-        >
-          <span className="config-editor__tab-icon">💬</span>
-          Mood Sets
-          <span className="config-editor__tab-count">{config.moodSets.length}</span>
-        </button>
-      </div>
+      {/* Note: Tabs removed - all content now in single view */}
 
       {/* Content */}
       <div className="config-editor__content">
-        {activeTab === 'appearance' && (
-          <div className="config-editor__section">
-            <div className="config-editor__section-header">
-              <div className="config-editor__section-info">
-                <h3>Base Appearance</h3>
-                <p>Define the character's physical attributes. These are used as the foundation for all image generation.</p>
-              </div>
+        <div className="config-editor__section">
+          <div className="config-editor__section-header">
+            <div className="config-editor__section-info">
+              <h3>Base Appearance</h3>
+              <p>Define the character's physical attributes. These are used as the foundation for all image generation.</p>
             </div>
+          </div>
 
             <div className="config-editor__appearance-grid">
               {/* Gender */}
@@ -991,264 +883,66 @@ export function CharacterConfigEditor({ filePath, fileName, onDirtyChange }: Cha
                 saveToDisk={false}
               />
             </div>
-          </div>
-        )}
 
-        {activeTab === 'image' && (
-          <div className="config-editor__section">
-            <div className="config-editor__section-header">
-              <div className="config-editor__section-info">
-                <h3>Image Prompt Sets</h3>
-                <p>Define additional style presets (clothing, poses, etc.) that extend the base appearance. Each set will be combined with the base appearance when generating images.</p>
+            {/* Default Style and Mood Selection */}
+            <div className="config-editor__section-divider">
+              <span>Default Generation Settings</span>
+            </div>
+            <p className="config-editor__field-hint" style={{ marginBottom: '1rem' }}>
+              Select default image style and mood from the Prompt Library. These can be overridden when generating content.
+            </p>
+
+            <div className="config-editor__appearance-grid">
+              {/* Default Image Style */}
+              <div className="config-editor__field">
+                <label>Default Image Style</label>
+                <select
+                  value={config.defaultImageStyleId || ''}
+                  onChange={(e) => updateDefaultImageStyle(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {availableImageStyles.map(style => (
+                    <option key={style.id} value={style.id}>{style.name}</option>
+                  ))}
+                </select>
+                <p className="config-editor__field-hint">
+                  Visual style for image generation (realistic, anime, etc.)
+                </p>
               </div>
-              <button className="config-editor__add-btn" onClick={addImagePromptSet}>
-                + Add Prompt Set
-              </button>
+
+              {/* Default Mood */}
+              <div className="config-editor__field">
+                <label>Default Mood</label>
+                <select
+                  value={config.defaultMoodId || ''}
+                  onChange={(e) => updateDefaultMood(e.target.value)}
+                >
+                  <option value="">None</option>
+                  {availableMoods.map(mood => (
+                    <option key={mood.id} value={mood.id}>{mood.name}</option>
+                  ))}
+                </select>
+                <p className="config-editor__field-hint">
+                  Personality for text generation (friendly, serious, etc.)
+                </p>
+              </div>
             </div>
 
-            {config.imagePromptSets.length === 0 ? (
-              <div className="config-editor__empty">
-                <span className="config-editor__empty-icon">🖼️</span>
-                <p>No image prompt sets defined yet.</p>
-                <p className="config-editor__empty-hint">
-                  Create prompt sets to define your character's appearance for different situations (casual, formal, etc.)
-                </p>
-                <button className="config-editor__add-btn" onClick={addImagePromptSet}>
-                  Create First Prompt Set
-                </button>
-              </div>
-            ) : (
-              <div className="config-editor__list">
-                {config.imagePromptSets.map((promptSet, index) => (
-                  <div
-                    key={index}
-                    className={`config-editor__item ${editingPromptIndex === index ? 'expanded' : ''}`}
-                  >
-                    <div
-                      className="config-editor__item-header"
-                      onClick={() => setEditingPromptIndex(editingPromptIndex === index ? null : index)}
-                    >
-                      <div className="config-editor__item-info">
-                        <span className="config-editor__item-name">{promptSet.name}</span>
-                        {config.defaultImagePromptSet === promptSet.name && (
-                          <span className="config-editor__default-badge">Default</span>
-                        )}
-                      </div>
-                      <div className="config-editor__item-actions">
-                        <button
-                          className="config-editor__set-default-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfig(prev => ({ ...prev, defaultImagePromptSet: promptSet.name }));
-                          }}
-                          title="Set as default"
-                        >
-                          ⭐
-                        </button>
-                        <button
-                          className="config-editor__delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteImagePromptSet(index);
-                          }}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                        <span className="config-editor__expand-icon">
-                          {editingPromptIndex === index ? '▼' : '▶'}
-                        </span>
-                      </div>
-                    </div>
+            {/* Show selected mood description if available */}
+            {config.defaultMoodId && (() => {
+              const selectedMood = availableMoods.find(m => m.id === config.defaultMoodId);
+              return selectedMood?.description ? (
+                <div className="config-editor__preview">
+                  <label>Mood Description</label>
+                  <div className="config-editor__preview-text">{selectedMood.description}</div>
+                </div>
+              ) : null;
+            })()}
 
-                    {editingPromptIndex === index && (
-                      <div className="config-editor__item-content">
-                        <div className="config-editor__field">
-                          <label>Set Name</label>
-                          <input
-                            type="text"
-                            value={promptSet.name}
-                            onChange={(e) => updateImagePromptSet(index, { name: e.target.value })}
-                            placeholder="e.g., casual, formal, swimwear"
-                          />
-                        </div>
-
-                        <div className="config-editor__field">
-                          <label>Positive Prompt (Character Appearance)</label>
-                          <textarea
-                            value={promptSet.positive}
-                            onChange={(e) => updateImagePromptSet(index, { positive: e.target.value })}
-                            placeholder="e.g., 1girl, brown hair, blue eyes, casual clothes, masterpiece, best quality"
-                            rows={3}
-                          />
-                          <div className="config-editor__suggestions">
-                            <span className="config-editor__suggestions-label">Quick add:</span>
-                            <div className="config-editor__suggestion-groups">
-                              {Object.entries(PROMPT_SUGGESTIONS).map(([category, suggestions]) => (
-                                <div key={category} className="config-editor__suggestion-group">
-                                  <span className="config-editor__suggestion-category">{category}:</span>
-                                  {suggestions.slice(0, 4).map((suggestion) => (
-                                    <button
-                                      key={suggestion}
-                                      className="config-editor__suggestion-btn"
-                                      onClick={() => addSuggestionToPrompt(index, suggestion, 'positive')}
-                                    >
-                                      {suggestion}
-                                    </button>
-                                  ))}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="config-editor__field">
-                          <label>Negative Prompt (What to Avoid)</label>
-                          <textarea
-                            value={promptSet.negative || ''}
-                            onChange={(e) => updateImagePromptSet(index, { negative: e.target.value })}
-                            placeholder="e.g., bad quality, blurry, deformed, extra limbs"
-                            rows={2}
-                          />
-                          <div className="config-editor__suggestions">
-                            <span className="config-editor__suggestions-label">Common negatives:</span>
-                            <div className="config-editor__suggestion-row">
-                              {NEGATIVE_SUGGESTIONS.slice(0, 8).map((suggestion) => (
-                                <button
-                                  key={suggestion}
-                                  className="config-editor__suggestion-btn"
-                                  onClick={() => addSuggestionToPrompt(index, suggestion, 'negative')}
-                                >
-                                  {suggestion}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="config-editor__field-hint" style={{ marginTop: '1rem' }}>
+              To add or edit styles and moods, open the <strong>Prompt Library Editor</strong> (.prompt-library.json file).
+            </p>
           </div>
-        )}
-
-        {activeTab === 'mood' && (
-          <div className="config-editor__section">
-            <div className="config-editor__section-header">
-              <div className="config-editor__section-info">
-                <h3>Mood Sets</h3>
-                <p>Define personality presets for text generation. Each mood describes how the character behaves and speaks in different emotional states.</p>
-              </div>
-              <button className="config-editor__add-btn" onClick={addMoodSet}>
-                + Add Mood Set
-              </button>
-            </div>
-
-            {config.moodSets.length === 0 ? (
-              <div className="config-editor__empty">
-                <span className="config-editor__empty-icon">💬</span>
-                <p>No mood sets defined yet.</p>
-                <p className="config-editor__empty-hint">
-                  Create mood sets to define how your character speaks and behaves in different emotional states.
-                </p>
-                <button className="config-editor__add-btn" onClick={addMoodSet}>
-                  Create First Mood Set
-                </button>
-              </div>
-            ) : (
-              <div className="config-editor__list">
-                {config.moodSets.map((moodSet, index) => (
-                  <div
-                    key={index}
-                    className={`config-editor__item ${editingMoodIndex === index ? 'expanded' : ''}`}
-                  >
-                    <div
-                      className="config-editor__item-header"
-                      onClick={() => setEditingMoodIndex(editingMoodIndex === index ? null : index)}
-                    >
-                      <div className="config-editor__item-info">
-                        <span className="config-editor__item-name">{moodSet.name}</span>
-                        {config.defaultMoodSet === moodSet.name && (
-                          <span className="config-editor__default-badge">Default</span>
-                        )}
-                      </div>
-                      <div className="config-editor__item-actions">
-                        <button
-                          className="config-editor__set-default-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setConfig(prev => ({ ...prev, defaultMoodSet: moodSet.name }));
-                          }}
-                          title="Set as default"
-                        >
-                          ⭐
-                        </button>
-                        <button
-                          className="config-editor__delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteMoodSet(index);
-                          }}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                        <span className="config-editor__expand-icon">
-                          {editingMoodIndex === index ? '▼' : '▶'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {editingMoodIndex === index && (
-                      <div className="config-editor__item-content">
-                        <div className="config-editor__field">
-                          <label>Mood Name</label>
-                          <input
-                            type="text"
-                            value={moodSet.name}
-                            onChange={(e) => updateMoodSet(index, { name: e.target.value })}
-                            placeholder="e.g., friendly, flirty, serious"
-                          />
-                        </div>
-
-                        <div className="config-editor__field">
-                          <label>Personality Description</label>
-                          <textarea
-                            value={moodSet.description}
-                            onChange={(e) => updateMoodSet(index, { description: e.target.value })}
-                            placeholder="Describe how the character behaves, speaks, and interacts when in this mood..."
-                            rows={4}
-                          />
-                          <p className="config-editor__field-hint">
-                            Describe the character's tone, word choices, body language, and typical responses.
-                          </p>
-                        </div>
-
-                        <div className="config-editor__templates">
-                          <span className="config-editor__templates-label">Start from template:</span>
-                          <div className="config-editor__template-grid">
-                            {MOOD_SUGGESTIONS.map((template) => (
-                              <button
-                                key={template.name}
-                                className="config-editor__template-btn"
-                                onClick={() => applyMoodTemplate(index, template)}
-                              >
-                                <span className="config-editor__template-name">{template.name}</span>
-                                <span className="config-editor__template-desc">{template.desc}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

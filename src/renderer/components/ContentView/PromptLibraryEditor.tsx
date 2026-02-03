@@ -38,6 +38,25 @@ Respond in JSON format:
   "negative": "comma, separated, negative, tags"
 }`;
 
+/** System prompt for generating MOOD components */
+const AI_MOOD_SYSTEM_PROMPT = `You are an expert at creating character personality descriptions for AI text generation.
+Your task is to generate a mood/personality profile that can be used to guide how a character speaks and behaves.
+
+IMPORTANT RULES:
+1. Focus on personality traits, speech patterns, and behavioral tendencies
+2. Be specific about tone, word choices, and typical responses
+3. Include both positive and negative traits for realism
+4. The description should help an AI generate dialogue in this character's voice
+5. For positive/negative prompts: include visual descriptors for facial expressions and body language
+
+Respond in JSON format:
+{
+  "name": "Short mood name (1-2 words)",
+  "positive": "visual descriptors for images (e.g., smiling, relaxed pose)",
+  "negative": "visual descriptors to avoid (e.g., angry, tense)",
+  "description": "Detailed personality description for text generation (2-4 sentences)"
+}`;
+
 export interface PromptLibraryEditorProps {
   filePath: string;
   fileName: string;
@@ -201,7 +220,13 @@ export function PromptLibraryEditor({ filePath, fileName, onDirtyChange }: Promp
 
     try {
       const categoryInfo = getCategoryInfo(aiCategory);
-      const userPrompt = `Generate a prompt component for the "${categoryInfo?.label || aiCategory}" category.
+      const isMoodCategory = aiCategory === PromptComponentCategory.MOOD;
+
+      const userPrompt = isMoodCategory
+        ? `Generate a mood/personality profile for: ${aiPrompt}
+
+Create a personality that can guide how a character speaks and behaves.`
+        : `Generate a prompt component for the "${categoryInfo?.label || aiCategory}" category.
 
 The user wants: ${aiPrompt}
 
@@ -211,7 +236,7 @@ Remember to generate tags suitable for Stable Diffusion image generation.`;
         baseUrl: appSettings.ollama.baseUrl,
         model: appSettings.ollama.model,
         prompt: userPrompt,
-        systemPrompt: AI_SYSTEM_PROMPT,
+        systemPrompt: isMoodCategory ? AI_MOOD_SYSTEM_PROMPT : AI_SYSTEM_PROMPT,
         temperature: 0.7,
         maxTokens: 512,
         format: 'json',
@@ -222,7 +247,7 @@ Remember to generate tags suitable for Stable Diffusion image generation.`;
       }
 
       // Parse the response
-      let generated: { name?: string; positive?: string; negative?: string };
+      let generated: { name?: string; positive?: string; negative?: string; description?: string };
       const responseText = result.response;
       try {
         generated = JSON.parse(responseText);
@@ -247,6 +272,7 @@ Remember to generate tags suitable for Stable Diffusion image generation.`;
         category: aiCategory,
         positive: generated.positive,
         negative: generated.negative || '',
+        description: isMoodCategory ? generated.description : undefined,
       };
 
       setLibrary(prev => ({
@@ -443,22 +469,42 @@ Remember to generate tags suitable for Stable Diffusion image generation.`;
                         />
                       </div>
 
+                      {/* Show description field for MOOD category */}
+                      {component.category === PromptComponentCategory.MOOD && (
+                        <div className="prompt-library__field">
+                          <label>Personality Description</label>
+                          <textarea
+                            value={component.description || ''}
+                            onChange={(e) => updateComponent(component.id, { description: e.target.value })}
+                            placeholder="Describe how this character behaves and speaks when in this mood..."
+                            rows={4}
+                          />
+                          <p className="prompt-library__field-hint">
+                            This text is injected into the AI system prompt for text generation.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="prompt-library__field">
-                        <label>Positive Prompt</label>
+                        <label>{component.category === PromptComponentCategory.MOOD ? 'Visual Positive Tags' : 'Positive Prompt'}</label>
                         <textarea
                           value={component.positive}
                           onChange={(e) => updateComponent(component.id, { positive: e.target.value })}
-                          placeholder="Tags to include in the prompt..."
+                          placeholder={component.category === PromptComponentCategory.MOOD
+                            ? "Visual tags for images (e.g., smiling, relaxed)"
+                            : "Tags to include in the prompt..."}
                           rows={3}
                         />
                       </div>
 
                       <div className="prompt-library__field">
-                        <label>Negative Prompt (Optional)</label>
+                        <label>{component.category === PromptComponentCategory.MOOD ? 'Visual Negative Tags (Optional)' : 'Negative Prompt (Optional)'}</label>
                         <textarea
                           value={component.negative || ''}
                           onChange={(e) => updateComponent(component.id, { negative: e.target.value })}
-                          placeholder="Tags to exclude..."
+                          placeholder={component.category === PromptComponentCategory.MOOD
+                            ? "Visual tags to avoid (e.g., angry, frowning)"
+                            : "Tags to exclude..."}
                           rows={2}
                         />
                       </div>

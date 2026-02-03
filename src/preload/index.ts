@@ -39,6 +39,12 @@ export interface OllamaSettings {
   model: string;
   temperature: number;
   maxTokens: number;
+  /** Request timeout in seconds (default: 180) */
+  timeoutSeconds?: number;
+  /** Message history summarization threshold (default: 30) */
+  summarizeAfterMessages?: number;
+  /** Number of recent messages to keep when summarizing (default: 10) */
+  keepRecentMessages?: number;
 }
 
 /**
@@ -51,6 +57,14 @@ export interface ComfyUISettings {
   defaultSteps: number;
   defaultWidth: number;
   defaultHeight: number;
+}
+
+/**
+ * Editor settings
+ */
+export interface EditorSettings {
+  /** Maximum number of history entries to keep (default: 1000) */
+  maxHistoryLength: number;
 }
 
 /**
@@ -90,6 +104,7 @@ export interface AppSettings {
   recentProjects?: RecentProject[];
   ollama?: OllamaSettings;
   comfyui?: ComfyUISettings;
+  editor?: EditorSettings;
 }
 
 /**
@@ -218,8 +233,10 @@ export interface ConversationSessionConfig {
     temperature?: number;
     maxTokens?: number;
   };
-  /** Character AI config (optional) */
+  /** Contact character AI config (optional) */
   characterConfig?: unknown;
+  /** Player character AI config (optional) */
+  playerCharacterConfig?: unknown;
   /** Prompt library (optional) */
   promptLibrary?: unknown;
 }
@@ -242,6 +259,8 @@ export interface ConversationSessionState {
   createdKnots: string[];
   modifiedKnots: string[];
   error?: string;
+  createdAt?: number;
+  lastActivityAt?: number;
 }
 
 /**
@@ -261,7 +280,20 @@ export interface ConversationTurnResult {
   createdKnots: string[];
   modifiedKnots: string[];
   error?: string;
+  /** Non-fatal warning message (e.g., LLM didn't call any tools) */
+  warning?: string;
   completionSummary?: string;
+  /** Info about history compaction if it occurred this turn */
+  historyCompaction?: {
+    occurred: boolean;
+    messagesSummarized: number;
+    messagesKept: number;
+    summary: string;
+  };
+  /** Whether the AI is waiting for user response (from ask_user tool) */
+  awaitingUserResponse?: boolean;
+  /** The question being asked to the user (from ask_user tool) */
+  userQuestion?: string;
 }
 
 /**
@@ -273,6 +305,19 @@ export type ConversationUpdateCallback = (sessionId: string, update: Conversatio
  * Callback type for file change events from conversation
  */
 export type ConversationFileChangeCallback = (filePath: string) => void;
+
+/**
+ * Callback type for content change events from conversation
+ * Provides the new file content for the editor to update without disk I/O
+ */
+export type ConversationContentChangeCallback = (filePath: string, content: string) => void;
+
+/**
+ * Callback type for content request events from conversation.
+ * The AI requests the current editor content for a file.
+ * Returns the content or null if the file is not open in the editor.
+ */
+export type ConversationContentRequestCallback = (requestId: string, filePath: string) => void;
 
 /**
  * Custom protocol name for local file access
@@ -569,6 +614,11 @@ export interface ElectronAPI {
   endConversationSession: (sessionId: string) => Promise<boolean>;
 
   /**
+   * Lists all conversation sessions (optionally filtered by ink file)
+   */
+  listConversationSessions: (inkFilePath?: string) => Promise<ConversationSessionState[]>;
+
+  /**
    * Registers a callback for conversation update events
    */
   onConversationUpdate: (callback: ConversationUpdateCallback) => () => void;
@@ -577,6 +627,26 @@ export interface ElectronAPI {
    * Registers a callback for file changes from conversation tools
    */
   onConversationFileChange: (callback: ConversationFileChangeCallback) => () => void;
+
+  /**
+   * Registers a callback for content changes from conversation tools.
+   * This is used when AI modifies file content - the content is sent directly
+   * to the editor without writing to disk.
+   */
+  onConversationContentChange: (callback: ConversationContentChangeCallback) => () => void;
+
+  /**
+   * Registers a callback for content requests from conversation tools.
+   * The AI requests the current editor content to read the latest state.
+   */
+  onConversationContentRequest: (callback: ConversationContentRequestCallback) => () => void;
+
+  /**
+   * Responds to a content request with the current editor content.
+   * @param requestId - The request ID from the content request callback
+   * @param content - The current content, or null if file is not open
+   */
+  respondToContentRequest: (requestId: string, content: string | null) => void;
 }
 
 // Expose the electronAPI to the renderer process via contextBridge
@@ -833,6 +903,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('conversation:end', sessionId);
   },
 
+  // List conversation sessions
+  listConversationSessions: (inkFilePath?: string): Promise<ConversationSessionState[]> => {
+    return ipcRenderer.invoke('conversation:listSessions', inkFilePath);
+  },
+
   // Conversation update listener
   onConversationUpdate: (callback: ConversationUpdateCallback): (() => void) => {
     const listener = (
@@ -856,6 +931,37 @@ contextBridge.exposeInMainWorld('electronAPI', {
     };
     ipcRenderer.on('conversation:file-changed', listener);
     return () => ipcRenderer.removeListener('conversation:file-changed', listener);
+  },
+
+  // Conversation content change listener (for AI updates without disk I/O)
+  onConversationContentChange: (callback: ConversationContentChangeCallback): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      filePath: string,
+      content: string
+    ): void => {
+      callback(filePath, content);
+    };
+    ipcRenderer.on('conversation:content-changed', listener);
+    return () => ipcRenderer.removeListener('conversation:content-changed', listener);
+  },
+
+  // Conversation content request listener (AI requesting current editor content)
+  onConversationContentRequest: (callback: ConversationContentRequestCallback): (() => void) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      filePath: string
+    ): void => {
+      callback(requestId, filePath);
+    };
+    ipcRenderer.on('conversation:request-content', listener);
+    return () => ipcRenderer.removeListener('conversation:request-content', listener);
+  },
+
+  // Respond to content request
+  respondToContentRequest: (requestId: string, content: string | null): void => {
+    ipcRenderer.send('conversation:content-response', requestId, content);
   },
 
   // Add project to recent list

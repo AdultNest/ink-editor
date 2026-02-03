@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "components": [
     {
       "id": "loc_cafe",
@@ -259,6 +259,126 @@
       "category": "time_weather",
       "positive": "foggy, misty, fog, hazy, atmospheric",
       "negative": "clear, sunny"
+    },
+    {
+      "id": "style_realistic",
+      "name": "Realistic",
+      "category": "image_style",
+      "positive": "realistic, photorealistic, photo, real life",
+      "negative": "anime, cartoon, drawing"
+    },
+    {
+      "id": "style_anime",
+      "name": "Anime",
+      "category": "image_style",
+      "positive": "anime, anime style, manga style, japanese animation",
+      "negative": "realistic, photo, 3d render"
+    },
+    {
+      "id": "style_digital_art",
+      "name": "Digital Art",
+      "category": "image_style",
+      "positive": "digital art, digital painting, digital illustration",
+      "negative": "photo, realistic"
+    },
+    {
+      "id": "style_oil_painting",
+      "name": "Oil Painting",
+      "category": "image_style",
+      "positive": "oil painting, classical painting, painted, brush strokes",
+      "negative": "photo, digital, anime"
+    },
+    {
+      "id": "style_watercolor",
+      "name": "Watercolor",
+      "category": "image_style",
+      "positive": "watercolor, watercolor painting, soft colors, flowing paint",
+      "negative": "photo, digital, sharp lines"
+    },
+    {
+      "id": "style_3d_render",
+      "name": "3D Render",
+      "category": "image_style",
+      "positive": "3d render, 3d art, cgi, rendered, octane render",
+      "negative": "hand drawn, painting, 2d"
+    },
+    {
+      "id": "style_comic",
+      "name": "Comic Book",
+      "category": "image_style",
+      "positive": "comic book, comic art, western comic, graphic novel style",
+      "negative": "realistic, photo, anime"
+    },
+    {
+      "id": "style_pixel",
+      "name": "Pixel Art",
+      "category": "image_style",
+      "positive": "pixel art, 8-bit, retro game, pixelated",
+      "negative": "realistic, high resolution, smooth"
+    },
+    {
+      "id": "mood_friendly",
+      "name": "Friendly",
+      "category": "mood",
+      "positive": "friendly expression, warm smile, approachable",
+      "negative": "angry, hostile",
+      "description": "Warm, approachable, uses casual language and humor. Genuinely interested in conversation and makes others feel comfortable."
+    },
+    {
+      "id": "mood_flirty",
+      "name": "Flirty",
+      "category": "mood",
+      "positive": "flirty expression, playful smile, charming",
+      "negative": "serious, cold",
+      "description": "Playful and charming, uses subtle compliments and teasing. Shows romantic interest while maintaining respect."
+    },
+    {
+      "id": "mood_serious",
+      "name": "Serious",
+      "category": "mood",
+      "positive": "serious expression, focused, determined",
+      "negative": "smiling, playful",
+      "description": "Direct and focused, professional tone. Speaks thoughtfully about important matters."
+    },
+    {
+      "id": "mood_shy",
+      "name": "Shy",
+      "category": "mood",
+      "positive": "shy expression, bashful, looking away, blushing",
+      "negative": "confident, bold",
+      "description": "Reserved and hesitant, uses shorter sentences. Takes time to open up and speaks softly."
+    },
+    {
+      "id": "mood_confident",
+      "name": "Confident",
+      "category": "mood",
+      "positive": "confident expression, self-assured, bold pose",
+      "negative": "shy, uncertain",
+      "description": "Self-assured and bold, takes initiative in conversation. Speaks with certainty and charisma."
+    },
+    {
+      "id": "mood_mysterious",
+      "name": "Mysterious",
+      "category": "mood",
+      "positive": "mysterious expression, enigmatic, subtle smile",
+      "negative": "open, obvious",
+      "description": "Enigmatic and intriguing, speaks in hints and riddles. Reveals little while maintaining interest."
+    },
+    {
+      "id": "mood_angry",
+      "name": "Angry",
+      "category": "mood",
+      "positive": "angry expression, frown, furrowed brow",
+      "negative": "happy, smiling",
+      "description": "Frustrated and confrontational, uses sharp words. Direct about displeasure but can be reasoned with."
+    },
+    {
+      "id": "mood_sad",
+      "name": "Sad",
+      "category": "mood",
+      "positive": "sad expression, melancholic, downcast eyes",
+      "negative": "happy, energetic",
+      "description": "Melancholic and speaks softly, needs comfort. May be withdrawn but appreciates support."
     }
   ]
 }

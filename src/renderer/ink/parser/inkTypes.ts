@@ -173,6 +173,8 @@ export interface InkParseError {
   lineNumber: number;
   /** The severity of the error */
   severity: 'error' | 'warning';
+  /** The category of the error (for filtering) */
+  category?: 'syntax' | 'reference' | 'media';
 }
 
 /**

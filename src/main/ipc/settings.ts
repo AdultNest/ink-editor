@@ -16,6 +16,12 @@ export interface OllamaSettings {
   model: string;
   temperature: number;
   maxTokens: number;
+  /** Request timeout in seconds (default: 180) */
+  timeoutSeconds?: number;
+  /** Message history summarization threshold (default: 30) */
+  summarizeAfterMessages?: number;
+  /** Number of recent messages to keep when summarizing (default: 10) */
+  keepRecentMessages?: number;
 }
 
 /**

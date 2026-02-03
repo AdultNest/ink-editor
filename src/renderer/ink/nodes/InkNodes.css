@@ -422,3 +422,35 @@
   background-color: #2196f3 !important;
   border-color: #64b5f6 !important;
 }
+
+/* Add divert handle row */
+.ink-knot-handle-row-add {
+  border-top: 1px dashed #3c3c3c;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+.ink-knot-add-label {
+  color: #606060 !important;
+  font-style: italic;
+}
+
+.ink-knot-add-icon {
+  color: #4caf50;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.ink-knot-add-text {
+  font-size: 10px;
+}
+
+.ink-handle-add {
+  background-color: #2a3a2a !important;
+  border-color: #4caf50 !important;
+}
+
+.ink-handle-add:hover {
+  background-color: #4caf50 !important;
+  border-color: #81c784 !important;
+}

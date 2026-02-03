@@ -67,6 +67,8 @@ export interface UseFileTreeActions {
   deleteItem: (path: string) => Promise<void>;
   /** Rename a file or folder */
   renameItem: (oldPath: string, newPath: string) => Promise<void>;
+  /** Move a file or folder to a new location */
+  moveItem: (sourcePath: string, targetFolderPath: string) => Promise<void>;
   /** Create a new project with default structure in the given folder */
   createProject: () => Promise<string | null>;
   /** Set the collapsed folders (for loading from config) */
@@ -521,6 +523,42 @@ export function useFileTree(): UseFileTreeReturn {
   }, []);
 
   /**
+   * Move a file or folder to a new location
+   */
+  const moveItem = useCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
+    try {
+      // Extract the file/folder name from the source path
+      const separator = sourcePath.includes('\\') ? '\\' : '/';
+      const name = sourcePath.split(/[/\\]/).pop();
+      if (!name) {
+        throw new Error('Invalid source path');
+      }
+
+      // Build the new path
+      const newPath = `${targetFolderPath}${separator}${name}`;
+
+      // Prevent moving to the same location
+      if (sourcePath === newPath) {
+        return;
+      }
+
+      // Prevent moving a folder into itself or its subdirectories
+      const normalizedSource = sourcePath.replace(/\\/g, '/').toLowerCase();
+      const normalizedTarget = targetFolderPath.replace(/\\/g, '/').toLowerCase();
+      if (normalizedTarget.startsWith(normalizedSource + '/') || normalizedTarget === normalizedSource) {
+        throw new Error('Cannot move a folder into itself');
+      }
+
+      // Use rename to move the file/folder
+      await window.electronAPI.rename(sourcePath, newPath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to move item';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
+  /**
    * Create a new project with default structure
    * Opens a folder selection dialog and creates:
    * - mod.json at root
@@ -817,6 +855,7 @@ Thanks for being honest! I'll work on it and show you the updated version later.
     importFiles,
     deleteItem,
     renameItem,
+    moveItem,
     setCollapsedFolders,
     createProject,
   };

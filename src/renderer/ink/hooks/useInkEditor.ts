@@ -36,6 +36,8 @@ import {
 } from '../parser';
 import type { KnotNodeData, StartNodeData, EndNodeData, RegionNodeData, InkRegion, InkStoryFlag } from '../parser/inkTypes';
 import { calculateLayout, type LayoutAlgorithm } from '../layout';
+import { useHistory, DEFAULT_MAX_HISTORY_LENGTH } from './useHistory';
+import type { HistoryOperation, HistoryNodeId, HistoryNode, HistoryNodeViewItem } from '../history';
 
 export type ViewMode = 'graph' | 'raw';
 
@@ -55,6 +57,13 @@ export interface UseInkEditorResult {
   nodes: Node[];
   edges: Edge[];
 
+  // History state
+  canUndo: boolean;
+  canRedo: boolean;
+  redoBranches: HistoryNode[];
+  historyTreeView: HistoryNodeViewItem[];
+  currentHistoryNodeId: HistoryNodeId | null;
+
   // Actions
   setViewMode: (mode: ViewMode) => void;
   setSelectedKnotId: (id: string | null) => void;
@@ -73,6 +82,11 @@ export interface UseInkEditorResult {
   renameKnotAction: (oldName: string, newName: string) => void;
   renameRegionAction: (oldName: string, newName: string) => void;
   applyLayout: (algorithm: LayoutAlgorithm) => void;
+
+  // History actions
+  undo: () => void;
+  redo: (branchId?: HistoryNodeId) => void;
+  jumpToHistory: (nodeId: HistoryNodeId) => void;
 }
 
 /**
@@ -422,7 +436,12 @@ function generateGraph(
 /**
  * Custom hook for managing the Ink editor state
  */
-export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
+export interface UseInkEditorOptions {
+  /** Maximum number of history entries to keep */
+  maxHistoryLength?: number;
+}
+
+export function useInkEditor(filePath: string | undefined, options?: UseInkEditorOptions): UseInkEditorResult {
   // Core state
   const [rawContent, setRawContentInternal] = useState('');
   const [parsedInk, setParsedInk] = useState<ParsedInk | null>(null);
@@ -432,6 +451,18 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // History hook with configurable max length
+  const history = useHistory({
+    maxHistoryLength: options?.maxHistoryLength ?? DEFAULT_MAX_HISTORY_LENGTH,
+  });
+
+  // Update history max length when options change
+  useEffect(() => {
+    if (options?.maxHistoryLength !== undefined) {
+      history.setMaxHistoryLength(options.maxHistoryLength);
+    }
+  }, [options?.maxHistoryLength, history.setMaxHistoryLength]);
 
   // Track pending position updates (to batch them)
   const pendingKnotPositions = useRef<Map<string, NodePosition>>(new Map());
@@ -447,6 +478,9 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
   // This prevents the editor from "reloading" when just moving nodes
   const skipNextParse = useRef(false);
 
+  // Flag to skip history push for undo/redo operations
+  const skipHistoryPush = useRef(false);
+
   // Load file when filePath changes
   useEffect(() => {
     if (!filePath) {
@@ -455,6 +489,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
       setSelectedKnotId(null);
       setIsDirty(false);
       setError(null);
+      history.reset();
       return;
     }
 
@@ -472,6 +507,8 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
           setIsDirty(false);
           setSelectedKnotId(null);
           pendingKnotPositions.current.clear();
+          // Initialize history with loaded content
+          history.initialize(content);
         }
       } catch (err) {
         if (!cancelled) {
@@ -489,7 +526,8 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     return () => {
       cancelled = true;
     };
-  }, [filePath]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filePath, history.reset, history.initialize]);
 
   // Parse content with debounce when rawContent changes
   // Skip parsing if it's a position-only change (to prevent editor "reload")
@@ -627,11 +665,18 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     return parsedInk.knots.find(k => k.name === selectedKnotId) || null;
   }, [selectedKnotId, parsedInk]);
 
-  // Set raw content and mark dirty
-  const setRawContent = useCallback((content: string) => {
+  // Set raw content and mark dirty (with history tracking)
+  const setRawContent = useCallback((content: string, operation?: HistoryOperation) => {
     setRawContentInternal(content);
     setIsDirty(true);
-  }, []);
+
+    // Push to history unless this is an undo/redo operation
+    // Note: history.push safely handles null tree internally
+    if (!skipHistoryPush.current) {
+      history.push(content, operation || { description: 'Edit content', type: 'edit' });
+    }
+    skipHistoryPush.current = false;
+  }, [history.push]);
 
   // Handle node position changes (from dragging)
   // Note: Region dragging is handled in InkNodeEditor which moves contained knots
@@ -689,9 +734,11 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
       const hasStartChange = pendingStartPosition.current !== null;
       const hasEndChange = pendingEndPosition.current !== null;
 
-      // Capture start/end positions before clearing
+      // Capture positions and names before clearing
       const newStartPosition = pendingStartPosition.current;
       const newEndPosition = pendingEndPosition.current;
+      const movedKnotNames = Array.from(pendingKnotPositions.current.keys());
+      const movedRegionNames = Array.from(pendingRegionPositions.current.keys());
 
       if ((hasKnotChanges || hasRegionChanges || hasStartChange || hasEndChange) && parsedInk) {
         let newContent = rawContent;
@@ -776,9 +823,32 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
         skipNextParse.current = true;
         setRawContentInternal(newContent);
         setIsDirty(true);
+
+        // Push to history for position changes
+        // Build a description based on what was moved
+        let description = 'Move node';
+        let target: string | undefined;
+        if (hasStartChange) {
+          description = 'Move START';
+          target = 'START';
+        } else if (hasEndChange) {
+          description = 'Move END';
+          target = 'END';
+        } else if (movedKnotNames.length === 1) {
+          description = `Move ${movedKnotNames[0]}`;
+          target = movedKnotNames[0];
+        } else if (movedKnotNames.length > 1) {
+          description = `Move ${movedKnotNames.length} nodes`;
+        } else if (movedRegionNames.length === 1) {
+          description = `Move region ${movedRegionNames[0]}`;
+          target = movedRegionNames[0];
+        } else if (movedRegionNames.length > 1) {
+          description = `Move ${movedRegionNames.length} regions`;
+        }
+        history.push(newContent, { description, type: 'move', target });
       }
     }, 500);
-  }, [rawContent, parsedInk]);
+  }, [rawContent, parsedInk, history.push]);
 
   // Update a specific knot's body content
   const updateKnot = useCallback((knotName: string, newBodyContent: string) => {
@@ -790,7 +860,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     // Strip position comment from new content (position is preserved separately)
     const cleanContent = stripPositionComment(newBodyContent);
     const newContent = updateKnotContent(rawContent, knot, cleanContent);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Edit knot ${knotName}`, type: 'edit', target: knotName });
   }, [parsedInk, rawContent, setRawContent]);
 
   // Add a new knot
@@ -798,15 +868,16 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     // Use provided position or default
     const position: NodePosition = { x: x ?? 400, y: y ?? 200 };
     const newContent = addKnot(rawContent, name, position);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Add knot ${name}`, type: 'add', target: name });
   }, [rawContent, setRawContent]);
 
   // Delete the selected knot
   const deleteSelectedKnot = useCallback(() => {
     if (!selectedKnot) return;
 
+    const knotName = selectedKnot.name;
     const newContent = deleteKnot(rawContent, selectedKnot);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Delete knot ${knotName}`, type: 'delete', target: knotName });
     setSelectedKnotId(null);
   }, [selectedKnot, rawContent, setRawContent]);
 
@@ -818,7 +889,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     if (!source) return;
 
     const newContent = addDivert(rawContent, source, targetKnot);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Add divert ${sourceKnot}→${targetKnot}`, type: 'edit', target: sourceKnot });
   }, [parsedInk, rawContent, setRawContent]);
 
   // Remove an edge (divert) between knots
@@ -829,7 +900,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     if (!source) return;
 
     const newContent = removeDivert(rawContent, source, targetKnot);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Remove divert ${sourceKnot}→${targetKnot}`, type: 'edit', target: sourceKnot });
   }, [parsedInk, rawContent, setRawContent]);
 
   // Update an edge (change divert target)
@@ -841,7 +912,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     if (!source) return;
 
     const newContent = updateDivert(rawContent, source, oldTarget, newTarget, lineNumber);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Update divert ${sourceKnot}→${newTarget}`, type: 'edit', target: sourceKnot });
   }, [parsedInk, rawContent, setRawContent]);
 
   // Save the file
@@ -872,31 +943,85 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
       setParsedInk(parseInk(content));
       setIsDirty(false);
       pendingKnotPositions.current.clear();
+      // Re-initialize history with reloaded content
+      history.initialize(content);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reload file');
     } finally {
       setIsLoading(false);
     }
-  }, [filePath]);
+  }, [filePath, history.initialize]);
 
-  // Keyboard shortcut for save
+  // Undo action
+  const undoAction = useCallback(() => {
+    const content = history.undo();
+    if (content !== null) {
+      skipHistoryPush.current = true;
+      setRawContentInternal(content);
+      setIsDirty(true);
+      // Re-parse to update UI
+      setParsedInk(parseInk(content));
+    }
+  }, [history.undo]);
+
+  // Redo action
+  const redoAction = useCallback((branchId?: HistoryNodeId) => {
+    const content = history.redo(branchId);
+    if (content !== null) {
+      skipHistoryPush.current = true;
+      setRawContentInternal(content);
+      setIsDirty(true);
+      // Re-parse to update UI
+      setParsedInk(parseInk(content));
+    }
+  }, [history.redo]);
+
+  // Jump to history node
+  const jumpToHistory = useCallback((nodeId: HistoryNodeId) => {
+    const content = history.jumpTo(nodeId);
+    if (content !== null) {
+      skipHistoryPush.current = true;
+      setRawContentInternal(content);
+      setIsDirty(true);
+      // Re-parse to update UI
+      setParsedInk(parseInk(content));
+    }
+  }, [history.jumpTo]);
+
+  // Keyboard shortcuts for save and undo/redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Save: Ctrl+S
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         save();
+        return;
+      }
+
+      // Undo: Ctrl+Z (without Shift)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undoAction();
+        return;
+      }
+
+      // Redo: Ctrl+Shift+Z or Ctrl+Y
+      if ((e.ctrlKey || e.metaKey) && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
+        e.preventDefault();
+        redoAction();
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [save]);
+  }, [save, undoAction, redoAction]);
 
   // Add a new region
   const addNewRegion = useCallback((name: string, x: number, y: number) => {
     const position: NodePosition = { x, y };
     const newContent = addRegion(rawContent, name, position);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Add region ${name}`, type: 'add', target: name });
   }, [rawContent, setRawContent]);
 
   // Handle region membership change (knot moved into/out of a region)
@@ -941,13 +1066,15 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     setIsDirty(true);
     // Update parsed ink with new content to avoid stale state
     setParsedInk(parseInk(newContent));
-  }, [parsedInk, rawContent]);
+    // Push to history (push safely handles null tree)
+    history.push(newContent, { description: `Move ${knotName} to ${newRegion || 'no region'}`, type: 'move', target: knotName });
+  }, [parsedInk, rawContent, history.push]);
 
   // Rename a knot (updates all references)
   const renameKnotAction = useCallback((oldName: string, newName: string) => {
     if (oldName === newName) return;
     const newContent = renameKnot(rawContent, oldName, newName);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Rename ${oldName}→${newName}`, type: 'rename', target: newName });
     // Update selection if the renamed knot was selected
     if (selectedKnotId === oldName) {
       setSelectedKnotId(newName);
@@ -958,7 +1085,7 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
   const renameRegionAction = useCallback((oldName: string, newName: string) => {
     if (oldName === newName) return;
     const newContent = renameRegion(rawContent, oldName, newName);
-    setRawContent(newContent);
+    setRawContent(newContent, { description: `Rename region ${oldName}→${newName}`, type: 'rename', target: newName });
   }, [rawContent, setRawContent]);
 
   // Apply auto-layout algorithm to reposition nodes
@@ -1013,7 +1140,10 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
 
     // Immediately re-parse to update the UI with new positions
     setParsedInk(parseInk(newContent));
-  }, [parsedInk, nodes, edges, rawContent]);
+
+    // Push to history (push safely handles null tree)
+    history.push(newContent, { description: `Apply ${algorithm} layout`, type: 'layout' });
+  }, [parsedInk, nodes, edges, rawContent, history.push]);
 
   return {
     rawContent,
@@ -1027,6 +1157,13 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     isSaving,
     nodes,
     edges,
+    // History state
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    redoBranches: history.redoBranches,
+    historyTreeView: history.treeView,
+    currentHistoryNodeId: history.currentNodeId,
+    // Actions
     setViewMode: setViewModeWithFlush,
     setSelectedKnotId,
     setRawContent,
@@ -1044,6 +1181,10 @@ export function useInkEditor(filePath: string | undefined): UseInkEditorResult {
     renameKnotAction,
     renameRegionAction,
     applyLayout,
+    // History actions
+    undo: undoAction,
+    redo: redoAction,
+    jumpToHistory,
   };
 }
 

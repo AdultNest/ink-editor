@@ -147,15 +147,87 @@ export function OllamaSettings({ settings, onChange }: OllamaSettingsProps) {
           <label className="settings-form__label" htmlFor="ollama-tokens">
             Max Tokens
           </label>
-          <input
-            id="ollama-tokens"
-            type="number"
-            className="settings-form__input settings-form__input--small"
-            value={settings.maxTokens}
-            onChange={(e) => onChange({ maxTokens: parseInt(e.target.value, 10) || 2048 })}
-            min="256"
-            max="8192"
-          />
+          <div className="settings-form__slider-group">
+            <input
+              id="ollama-tokens"
+              type="range"
+              className="settings-form__slider"
+              min="2048"
+              max="16384"
+              step="2048"
+              value={settings.maxTokens}
+              onChange={(e) => onChange({ maxTokens: parseInt(e.target.value, 10) })}
+            />
+            <span className="settings-form__slider-value">{settings.maxTokens}</span>
+          </div>
+        </div>
+
+        <div className="settings-form__row">
+          <label className="settings-form__label" htmlFor="ollama-timeout">
+            Timeout
+          </label>
+          <div className="settings-form__slider-group">
+            <input
+              id="ollama-timeout"
+              type="range"
+              className="settings-form__slider"
+              min="1"
+              max="10"
+              step="0.5"
+              value={(settings.timeoutSeconds ?? 180) / 60}
+              onChange={(e) => onChange({ timeoutSeconds: Math.round(parseFloat(e.target.value) * 60) })}
+            />
+            <span className="settings-form__slider-value">{((settings.timeoutSeconds ?? 180) / 60).toFixed(1)} min</span>
+          </div>
+          <span className="settings-form__hint">
+            Maximum time to wait for a response (increase for slower models)
+          </span>
+        </div>
+
+        <div className="settings-form__divider" />
+
+        <div className="settings-form__row">
+          <label className="settings-form__label" htmlFor="ollama-summarize-threshold">
+            Summarize After
+          </label>
+          <div className="settings-form__slider-group">
+            <input
+              id="ollama-summarize-threshold"
+              type="range"
+              className="settings-form__slider"
+              min="10"
+              max="100"
+              step="5"
+              value={settings.summarizeAfterMessages ?? 30}
+              onChange={(e) => onChange({ summarizeAfterMessages: parseInt(e.target.value, 10) })}
+            />
+            <span className="settings-form__slider-value">{settings.summarizeAfterMessages ?? 30} msgs</span>
+          </div>
+          <span className="settings-form__hint">
+            Compress older messages after this many to prevent context overflow
+          </span>
+        </div>
+
+        <div className="settings-form__row">
+          <label className="settings-form__label" htmlFor="ollama-keep-recent">
+            Keep Recent
+          </label>
+          <div className="settings-form__slider-group">
+            <input
+              id="ollama-keep-recent"
+              type="range"
+              className="settings-form__slider"
+              min="5"
+              max="30"
+              step="1"
+              value={settings.keepRecentMessages ?? 10}
+              onChange={(e) => onChange({ keepRecentMessages: parseInt(e.target.value, 10) })}
+            />
+            <span className="settings-form__slider-value">{settings.keepRecentMessages ?? 10} msgs</span>
+          </div>
+          <span className="settings-form__hint">
+            Number of recent messages to keep verbatim when summarizing
+          </span>
         </div>
       </div>
     </div>

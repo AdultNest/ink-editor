@@ -25,12 +25,12 @@ export interface FileTreeNodeProps extends NodeRendererProps<FileTreeNodeType> {
  * - File type icon (emoji-based, determined by file extension or folder state)
  * - File/folder name with truncation on overflow
  * - Visual feedback for selection, hover, and focus states
+ * - Drag handle for drag and drop support
  *
  * @param props - NodeRendererProps from react-arborist with optional context menu handler
  */
-function FileTreeNode({ node, style, onContextMenu }: FileTreeNodeProps) {
+function FileTreeNode({ node, style, dragHandle, onContextMenu }: FileTreeNodeProps) {
   // Access the tree node data (our FileTreeNode structure)
-  // Note: We intentionally don't use dragHandle since drag is disabled in the tree
   const nodeData = node.data;
   const name = nodeData.name;
   const isDirectory = nodeData.data.isDirectory;
@@ -72,6 +72,7 @@ function FileTreeNode({ node, style, onContextMenu }: FileTreeNodeProps) {
 
   return (
     <div
+      ref={dragHandle}
       className={classNames.join(' ')}
       style={style}
       onClick={handleClick}

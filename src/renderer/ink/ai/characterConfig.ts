@@ -3,34 +3,14 @@
  *
  * Handles loading and managing character-specific AI generation settings.
  * Each character can have a .conf.json file with:
- * - Image generation prompt sets (visual appearance descriptors)
- * - Ollama mood sets (personality and behavior descriptors)
+ * - Reference to image style from prompt library
+ * - Reference to mood from prompt library
  * - Character appearance data for prompt building
  */
 
 import type { CharacterAppearance, CharacterConfig } from '../../../renderer/services/promptBuilder';
-
-/**
- * Image generation prompt set for a character
- */
-export interface ImagePromptSet {
-  /** Name of this prompt set (e.g., "casual", "formal", "angry") */
-  name: string;
-  /** Positive prompts to include (e.g., "1girl, brown hair, blue eyes") */
-  positive: string;
-  /** Negative prompts to exclude (e.g., "bad quality, blurry") */
-  negative?: string;
-}
-
-/**
- * Mood/personality set for text generation
- */
-export interface MoodSet {
-  /** Name of this mood (e.g., "friendly", "annoyed", "flirty") */
-  name: string;
-  /** Description of personality traits and behaviors */
-  description: string;
-}
+import type { ProjectPromptLibrary } from '../../../renderer/services/promptLibrary.types';
+import { promptLibraryService } from '../../../renderer/services/promptLibraryService';
 
 /**
  * Character JSON metadata (from characterid.json)
@@ -54,14 +34,10 @@ export interface CharacterMeta {
 export interface CharacterAIConfig {
   /** Character ID this config belongs to */
   characterId: string;
-  /** Default image prompt set name to use */
-  defaultImagePromptSet?: string;
-  /** Default mood set name to use */
-  defaultMoodSet?: string;
-  /** Image generation prompt sets */
-  imagePromptSets: ImagePromptSet[];
-  /** Mood/personality sets for text generation */
-  moodSets: MoodSet[];
+  /** Reference to default image style component in prompt library */
+  defaultImageStyleId?: string;
+  /** Reference to default mood component in prompt library */
+  defaultMoodId?: string;
   /** Character appearance data for prompt building */
   appearance?: CharacterAppearance;
   /** Character metadata from JSON file */
@@ -85,8 +61,6 @@ export interface ConversationMeta {
  */
 export const DEFAULT_CHARACTER_CONFIG: CharacterAIConfig = {
   characterId: '',
-  imagePromptSets: [],
-  moodSets: [],
 };
 
 /**
@@ -267,10 +241,8 @@ export async function loadCharacterConfig(
     // Ensure required fields
     return {
       characterId: config.characterId || characterId,
-      defaultImagePromptSet: config.defaultImagePromptSet,
-      defaultMoodSet: config.defaultMoodSet,
-      imagePromptSets: config.imagePromptSets || [],
-      moodSets: config.moodSets || [],
+      defaultImageStyleId: config.defaultImageStyleId,
+      defaultMoodId: config.defaultMoodId,
       appearance: config.appearance,
       meta: meta || undefined,
     };
@@ -310,66 +282,46 @@ export async function saveCharacterConfig(
 }
 
 /**
- * Get a specific image prompt set by name
- */
-export function getImagePromptSet(
-  config: CharacterAIConfig,
-  name?: string
-): ImagePromptSet | undefined {
-  const targetName = name || config.defaultImagePromptSet;
-  if (!targetName) {
-    return config.imagePromptSets[0];
-  }
-  return config.imagePromptSets.find(p => p.name === targetName);
-}
-
-/**
- * Get a specific mood set by name
- */
-export function getMoodSet(
-  config: CharacterAIConfig,
-  name?: string
-): MoodSet | undefined {
-  const targetName = name || config.defaultMoodSet;
-  if (!targetName) {
-    return config.moodSets[0];
-  }
-  return config.moodSets.find(m => m.name === targetName);
-}
-
-/**
- * Build image prompt with character's base prompts
+ * Build image prompt with character's image style from library
  */
 export function buildImagePromptWithCharacter(
   userPrompt: string,
   characterConfig: CharacterAIConfig | null,
-  promptSetName?: string
+  library: ProjectPromptLibrary | null,
+  styleId?: string
 ): { positive: string; negative: string } {
-  const promptSet = characterConfig ? getImagePromptSet(characterConfig, promptSetName) : undefined;
+  const targetStyleId = styleId || characterConfig?.defaultImageStyleId;
 
   let positive = userPrompt;
   let negative = '';
 
-  if (promptSet) {
-    // Prepend character's base prompts
-    positive = promptSet.positive ? `${promptSet.positive}, ${userPrompt}` : userPrompt;
-    negative = promptSet.negative || '';
+  if (library && targetStyleId) {
+    const stylePrompt = promptLibraryService.getImageStylePrompt(library, targetStyleId);
+    if (stylePrompt) {
+      // Prepend style prompts
+      positive = stylePrompt.positive ? `${stylePrompt.positive}, ${userPrompt}` : userPrompt;
+      negative = stylePrompt.negative || '';
+    }
   }
 
   return { positive, negative };
 }
 
 /**
- * Build text generation system prompt with character's mood
+ * Build text generation system prompt with mood from library
  */
 export function buildSystemPromptWithMood(
   baseSystemPrompt: string,
-  characterConfig: CharacterAIConfig | null,
-  moodSetName?: string
+  library: ProjectPromptLibrary | null,
+  moodId?: string
 ): string {
-  const moodSet = characterConfig ? getMoodSet(characterConfig, moodSetName) : undefined;
+  if (!library || !moodId) {
+    return baseSystemPrompt;
+  }
 
-  if (!moodSet) {
+  const moodDescription = promptLibraryService.getMoodDescription(library, moodId);
+
+  if (!moodDescription) {
     return baseSystemPrompt;
   }
 
@@ -377,7 +329,7 @@ export function buildSystemPromptWithMood(
   return `${baseSystemPrompt}
 
 CHARACTER PERSONALITY:
-${moodSet.description}
+${moodDescription}
 
 Write dialogue that reflects this personality.`;
 }

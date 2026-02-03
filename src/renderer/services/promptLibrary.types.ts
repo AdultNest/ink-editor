@@ -11,6 +11,8 @@ export enum PromptComponentCategory {
   CLOTHING = 'clothing',
   ACTION = 'action',
   TIME_WEATHER = 'time_weather',
+  IMAGE_STYLE = 'image_style',
+  MOOD = 'mood',
 }
 
 /** A single reusable prompt component */
@@ -27,6 +29,8 @@ export interface PromptComponent {
   negative?: string;
   /** Optional tags for search/filter */
   tags?: string[];
+  /** For MOOD category: personality description for text generation */
+  description?: string;
 }
 
 /** Project prompt library structure (stored in .prompt-library.json) */
@@ -70,6 +74,18 @@ export const CATEGORY_INFO: CategoryInfo[] = [
     label: 'Time & Weather',
     description: 'Lighting and atmospheric conditions',
     icon: '🌤️',
+  },
+  {
+    category: PromptComponentCategory.IMAGE_STYLE,
+    label: 'Image Styles',
+    description: 'Visual styles and art directions',
+    icon: '🎨',
+  },
+  {
+    category: PromptComponentCategory.MOOD,
+    label: 'Moods',
+    description: 'Personality and emotional states for text generation',
+    icon: '💭',
   },
 ];
 

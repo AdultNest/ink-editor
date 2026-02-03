@@ -46,6 +46,7 @@ function App() {
     importFiles,
     deleteItem,
     renameItem,
+    moveItem,
     createProject: createProjectBase,
     setCollapsedFolders,
   } = useFileTree();
@@ -659,6 +660,7 @@ function App() {
               onImportFiles={importFiles}
               onDelete={handleDeleteRequest}
               onRename={handleRenameRequest}
+              onMove={moveItem}
               onShowInExplorer={handleShowInExplorer}
               height={window.innerHeight - 100}
               emptyMessage="Empty folder"

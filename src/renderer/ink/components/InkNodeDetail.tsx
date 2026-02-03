@@ -53,6 +53,8 @@ export interface InkNodeDetailProps {
   promptLibrary?: ProjectPromptLibrary | null;
   /** Callback when AI generates new content to append */
   onAIGenerate?: (inkContent: string, linkFromKnot: string) => void;
+  /** Callback to open the AI Story Assistant panel with "continue from" context */
+  onOpenAIPanel?: (knotName: string, knotContent: string) => void;
 }
 
 /**
@@ -253,7 +255,6 @@ function AIAssistantEditor({
   const isEnabled = appSettings?.ollama?.enabled ?? false;
   const ollamaConfig = appSettings?.ollama;
   const isOllamaConfigured = ollamaConfig?.enabled && ollamaConfig?.baseUrl && ollamaConfig?.model;
-  const hasMoods = characterConfig && characterConfig.moodSets.length > 0;
 
   // Subscribe to conversation state changes
   useEffect(() => {
@@ -595,18 +596,27 @@ export function InkNodeDetail({
   mainCharacterConfig,
   promptLibrary,
   onAIGenerate,
+  onOpenAIPanel,
 }: InkNodeDetailProps) {
   // Load saved mode preference
   const [mode, setMode] = useState<EditorMode>(() => {
     const saved = localStorage.getItem(MODE_STORAGE_KEY);
-    return (saved as EditorMode) || 'visual';
+    // Don't restore 'ai' mode since it now opens a separate panel
+    const savedMode = saved as EditorMode;
+    return (savedMode && savedMode !== 'ai') ? savedMode : 'visual';
   });
 
   // Save mode preference when it changes
   const handleModeChange = useCallback((newMode: EditorMode) => {
+    // AI mode opens the main panel instead of staying here
+    if (newMode === 'ai') {
+      const displayContent = stripPositionComment(knot.bodyContent);
+      onOpenAIPanel?.(knot.name, displayContent);
+      return;
+    }
     setMode(newMode);
     localStorage.setItem(MODE_STORAGE_KEY, newMode);
-  }, []);
+  }, [knot.name, knot.bodyContent, onOpenAIPanel]);
 
   // Strip position comment from content for display/editing
   const displayContent = useMemo(

@@ -383,9 +383,17 @@ function ImageEditor({
     appSettings?.comfyui?.baseUrl &&
     appSettings?.comfyui?.checkpointModel;
 
-  // Check if character has image prompt sets or mood sets
-  const hasPromptSets = characterConfig && characterConfig.imagePromptSets.length > 0;
-  const hasMoodSets = characterConfig && characterConfig.moodSets.length > 0;
+  // Get image styles and moods from library
+  const availableImageStyles = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(promptLibrary, PromptComponentCategory.IMAGE_STYLE);
+  }, [promptLibrary]);
+
+  const availableMoods = useMemo(() => {
+    return promptLibraryService.getComponentsByCategory(promptLibrary, PromptComponentCategory.MOOD);
+  }, [promptLibrary]);
+
+  const hasImageStyles = availableImageStyles.length > 0;
+  const hasMoods = availableMoods.length > 0;
 
   // Get image URL for thumbnail
   const getImageUrl = (img: string) => {
@@ -423,36 +431,46 @@ function ImageEditor({
       appearancePrompt = promptBuilder.buildFullBodyPrompt(characterConfig.appearance);
     }
 
-    // Build prompt with character's image prompt sets (legacy)
-    const { positive: charPositive, negative: charNegative } = buildImagePromptWithCharacter(
+    // Build prompt with image style from library
+    const { positive: stylePositive, negative: styleNegative } = buildImagePromptWithCharacter(
       aiPrompt,
       characterConfig || null,
+      promptLibrary,
       selectedPromptSet || undefined
     );
 
-    // Get mood hint from selected mood set
-    const moodHint = selectedMoodSet || '';
+    // Get mood visual prompts from library if selected
+    let moodPositive = '';
+    let moodNegative = '';
+    if (selectedMoodSet) {
+      const moodComponent = promptLibraryService.getComponentById(promptLibrary, selectedMoodSet);
+      if (moodComponent) {
+        moodPositive = moodComponent.positive || '';
+        moodNegative = moodComponent.negative || '';
+      }
+    }
 
-    // Combine: appearance + character prompt set + mood + library components
+    // Combine: appearance + style + mood visuals + library components
     const positiveParts = [
       appearancePrompt.positive,
-      charPositive,
-      moodHint,
+      stylePositive,
+      moodPositive,
       libraryPrompt.positive,
     ].filter(Boolean);
     const positive = positiveParts.join(', ');
 
-    // Combine negatives: appearance + character + library + user
+    // Combine negatives: appearance + style + mood + library + user
     const negativeParts = [
       appearancePrompt.negative,
-      charNegative,
+      styleNegative,
+      moodNegative,
       libraryPrompt.negative,
       aiNegativePrompt,
     ].filter(Boolean);
     const negative = negativeParts.join(', ');
 
     return { positive, negative };
-  }, [characterConfig, aiPrompt, selectedPromptSet, selectedMoodSet, libraryPrompt, aiNegativePrompt]);
+  }, [characterConfig, aiPrompt, selectedPromptSet, selectedMoodSet, promptLibrary, libraryPrompt, aiNegativePrompt]);
 
   // Handle when image is saved by ImageGenerator
   const handleImageSaved = useCallback((savedPath: string) => {
@@ -510,11 +528,11 @@ function ImageEditor({
               </div>
             ) : (
               <>
-                {/* Character style selectors */}
-                {(hasPromptSets || hasMoodSets) && (
+                {/* Image Style and Mood selectors from library */}
+                {(hasImageStyles || hasMoods) && (
                   <div className="content-item-editor__ai-row">
-                    {/* Prompt set selector */}
-                    {hasPromptSets && (
+                    {/* Image style selector */}
+                    {hasImageStyles && (
                       <div className="content-item-editor__ai-field">
                         <label className="content-item-editor__ai-label">Style</label>
                         <select
@@ -523,28 +541,28 @@ function ImageEditor({
                           onChange={(e) => setSelectedPromptSet(e.target.value)}
                         >
                           <option value="">Default</option>
-                          {characterConfig!.imagePromptSets.map((ps) => (
-                            <option key={ps.name} value={ps.name}>
-                              {ps.name}
+                          {availableImageStyles.map((style) => (
+                            <option key={style.id} value={style.id}>
+                              {style.name}
                             </option>
                           ))}
                         </select>
                       </div>
                     )}
-                    {/* Mood set selector */}
-                    {hasMoodSets && (
+                    {/* Mood selector */}
+                    {hasMoods && (
                       <div className="content-item-editor__ai-field">
                         <label className="content-item-editor__ai-label">Mood</label>
                         <select
                           className="content-item-editor__select"
                           value={selectedMoodSet}
                           onChange={(e) => setSelectedMoodSet(e.target.value)}
-                          title={selectedMoodSet ? characterConfig!.moodSets.find(m => m.name === selectedMoodSet)?.description : ''}
+                          title={selectedMoodSet ? promptLibraryService.getMoodDescription(promptLibrary, selectedMoodSet) || '' : ''}
                         >
                           <option value="">None</option>
-                          {characterConfig!.moodSets.map((ms) => (
-                            <option key={ms.name} value={ms.name} title={ms.description}>
-                              {ms.name}
+                          {availableMoods.map((mood) => (
+                            <option key={mood.id} value={mood.id} title={mood.description}>
+                              {mood.name}
                             </option>
                           ))}
                         </select>

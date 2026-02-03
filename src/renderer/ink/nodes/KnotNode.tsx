@@ -154,17 +154,20 @@ function KnotNode({ data, selected }: NodeProps<KnotNodeType>) {
             </div>
           );
         })}
-        {diverts.length === 0 && conditionalDiverts.length === 0 && (
-          <div className="ink-knot-no-diverts">
-            <span className="ink-knot-no-diverts-text">No diverts</span>
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              id="default"
-              className="ink-handle ink-handle-source"
-            />
-          </div>
-        )}
+        {/* Always show an "add divert" handle for creating new connections */}
+        <div className="ink-knot-handle-row ink-knot-handle-row-add">
+          <span className="ink-knot-handle-label ink-knot-add-label">
+            <span className="ink-knot-add-icon">+</span>
+            <span className="ink-knot-add-text">Add divert</span>
+          </span>
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="add"
+            className="ink-handle ink-handle-source ink-handle-divert ink-handle-add"
+            style={{ position: 'relative', top: 0, right: 0, transform: 'none' }}
+          />
+        </div>
       </div>
 
       {/* Conditional diverts section - displayed separately */}

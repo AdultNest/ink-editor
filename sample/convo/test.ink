@@ -40,7 +40,7 @@ Sounds refreshing. Coming right up!
 -> serve_iced_coffee
 
 === tea ===
-// <{ "pos-x": 3250.0, "pos-y": 1067.5 }>
+// <{ "pos-x": 3250.0, "pos-y": 1150.0 }>
 Tea? Love it. Black or green?
 # TYPING: 2s
 + [Black tea] -> black_tea
@@ -59,7 +59,7 @@ Green tea, nice choice. Almost done.
 -> serve_tea
 
 === chat ===
-// <{ "pos-x": 850.0, "pos-y": 2720.0 }>
+// <{ "pos-x": 850.0, "pos-y": 2870.0 }>
 More than just coffee? How about we chat over a cup?
 # TYPING: 2s
 + [Tell me about your day] -> talk_day
@@ -67,21 +67,21 @@ More than just coffee? How about we chat over a cup?
 + [Recommend a book] -> book_recommendation
 
 === talk_day ===
-// <{ "pos-x": 2450.0, "pos-y": 1967.5 }>
+// <{ "pos-x": 2450.0, "pos-y": 2050.0 }>
 Sure, I'd love to hear about your day. How was it?
 # TYPING: 2s
 + [It was great, thanks!] -> great_day
 + [It was okay, nothing special] -> okay_day
 
 === great_day ===
-// <{ "pos-x": 3250.0, "pos-y": 1667.5 }>
+// <{ "pos-x": 3250.0, "pos-y": 1750.0 }>
 That's great to hear! Anything exciting happen?
 # TYPING: 2s
 + [Yes, my project got approved] -> project_approved
 + [No, just regular stuff] -> regular_stuff
 
 === okay_day ===
-// <{ "pos-x": 3250.0, "pos-y": 2267.5 }>
+// <{ "pos-x": 3250.0, "pos-y": 2350.0 }>
 Oh, okay. Work was busy then?
 # TYPING: 2s
 + [Yes, long meetings all day] -> long_meetings
@@ -130,7 +130,7 @@ Iced coffee, right? Hope it's not too sweet.
 -> end
 
 === serve_tea ===
-// <{ "pos-x": 4850.0, "pos-y": 1067.5 }>
+// <{ "pos-x": 4850.0, "pos-y": 1150.0 }>
 Your tea is ready. Black or green, as you requested.
 # TYPING: 2s
 -> end
@@ -166,28 +166,29 @@ Sure, I'd be happy to tell you about my day. So, how was yours?
 -> talk_day
 
 === book_recommendation ===
-// <{ "pos-x": 3250.0, "pos-y": 3617.5 }>
+// <{ "pos-x": 3250.0, "pos-y": 3550.0 }>
 Books? Always a good conversation starter. What kind do you like?
 # TYPING: 2s
 + [Mysteries] -> mysteries
-+ [Science fiction] -> sci-fi
++ [Science fiction] -> scifi
 + [Romance] -> romance
 
 === mysteries ===
-// <{ "pos-x": 4050.0, "pos-y": 3250.0 }>
+// <{ "pos-x": 4050.0, "pos-y": 2950.0 }>
 Mysteries? I love those. Who's your favorite author?
 # TYPING: 2s
 + [Agatha Christie] ->  Christie
 + [Arthur Conan Doyle] -> doyle
 
-=== sci-fi ===
+=== scifi ===
+// <{ "pos-x": 4050.0, "pos-y": 3550.0 }>
 Science fiction? Great genre. Do you prefer space adventures or cyberpunk?
 # TYPING: 2s
 + [Space adventures] -> space
 + [Cyberpunk] -> cyber
 
 === romance ===
-// <{ "pos-x": 4050.0, "pos-y": 4067.5 }>
+// <{ "pos-x": 4050.0, "pos-y": 4150.0 }>
 Romance, oh I adore that. Any favorites?
 # TYPING: 2s
 + [Jane Austen] -> austen
@@ -230,7 +231,7 @@ Modern romance? Plenty of great authors out there. What's your favorite?
 -> end
 
 === end ===
-// <{ "pos-x": 5650.0, "pos-y": 2267.5 }>
+// <{ "pos-x": 5650.0, "pos-y": 2350.0 }>
 Well, that's it for now. Come back anytime!
 # TYPING: 2s
 -> END

@@ -258,3 +258,65 @@
 .file-tree-input-dialog__input::placeholder {
   color: #808080;
 }
+
+/* Drag and drop styles */
+
+/* Node being dragged */
+.file-tree-node[data-state='dragging'] {
+  opacity: 0.5;
+}
+
+/* Drop target highlighting */
+.file-tree-node[data-state='drop-target'] {
+  background-color: #094771;
+  outline: 1px dashed #007acc;
+  outline-offset: -1px;
+}
+
+/* Drop zone between items */
+.file-tree-node[data-state='drop-above']::before,
+.file-tree-node[data-state='drop-below']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #007acc;
+}
+
+.file-tree-node[data-state='drop-above']::before {
+  top: 0;
+}
+
+.file-tree-node[data-state='drop-below']::after {
+  bottom: 0;
+}
+
+/* Drag preview customization (react-arborist default) */
+[data-react-arborist-drag-preview] {
+  background-color: #252526;
+  border: 1px solid #007acc;
+  border-radius: 3px;
+  padding: 4px 8px;
+  color: #cccccc;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Cursor styles during drag */
+.file-tree[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.file-tree-node {
+  cursor: grab;
+  position: relative;
+}
+
+.file-tree-node:active {
+  cursor: grabbing;
+}

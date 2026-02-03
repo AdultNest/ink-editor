@@ -7,10 +7,16 @@
     "characters/dion.conf",
     "convo/test.ink",
     ".prompt-library.json",
-    "conversations/grouped-chat-settings.json",
-    "conversations/sarah-chat-1-settings.json",
-    "conversations/sarah-chat-2-flags.ink"
+    "conversations/sarah-chat-2-flags.ink",
+    "conversations/sarah-chat-2-flags-settings.json",
+    "conversations/sarah-chat-1.ink",
+    "conversations/grouped-chat.ink",
+    "empty_profilepic.jpg",
+    "image-preview.comfyui",
+    "convo/dion-helly-leak.ink",
+    "Injections/secret-reveal-settings.json",
+    "Injections/secret-reveal.ink"
   ],
-  "activeTab": "characters/dion.conf",
+  "activeTab": "Injections/secret-reveal.ink",
   "collapsedFolders": []
 }
